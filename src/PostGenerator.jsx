@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import html2canvas from 'html2canvas';
-import { BadgeCheck, Image as ImageIcon, Download } from 'lucide-react';
+import { BadgeCheck, Download, Linkedin, Heart, Share2, Bookmark, MessageCircle } from 'lucide-react';
 import './PostGenerator.css';
 
 const PostGenerator = () => {
@@ -10,11 +10,11 @@ const PostGenerator = () => {
   const handleDownload = async () => {
     if (postRef.current) {
       const canvas = await html2canvas(postRef.current, {
-        scale: 2, // Higher scale for better quality
-        backgroundColor: null, // Transparent background if needed, or white
+        scale: 2,
+        backgroundColor: null,
         useCORS: true,
       });
-      
+
       const image = canvas.toDataURL('image/png');
       const link = document.createElement('a');
       link.href = image;
@@ -44,19 +44,40 @@ const PostGenerator = () => {
       <div className="preview-section">
         <div className="post-card" ref={postRef}>
           <div className="post-header">
-            <div className="avatar-placeholder">
-              <ImageIcon size={24} color="#666" />
-            </div>
+            <img src="/VamsiPenmetsa.jpg" alt="Vamsi Penmetsa" className="avatar" />
             <div className="user-info">
               <div className="name-row">
                 <span className="name">Vamsi Penmetsa</span>
-                <BadgeCheck size={18} className="blue-tick" fill="#1DA1F2" color="white" />
+                <BadgeCheck size={18} className="blue-tick" fill="#0a66c2" color="white" />
+                <span className="dot">•</span>
+                <span className="follow-text">Following</span>
               </div>
-              <span className="username">@vamsipenmetsa</span>
+              <div className="handle-row">
+                <span className="username">@vamsipenmetsa</span>
+                <Linkedin size={14} className="linkedin-icon" color="#0a66c2" />
+              </div>
             </div>
           </div>
           <div className="post-content">
             {text}
+          </div>
+          <div className="post-footer">
+            <div className="interaction-item">
+              <Heart size={20} className="icon" />
+              <span>Like</span>
+            </div>
+            <div className="interaction-item">
+              <MessageCircle size={20} className="icon" />
+              <span>Comment</span>
+            </div>
+            <div className="interaction-item">
+              <Share2 size={20} className="icon" />
+              <span>Share</span>
+            </div>
+            <div className="interaction-item">
+              <Bookmark size={20} className="icon" />
+              <span>Save</span>
+            </div>
           </div>
         </div>
       </div>

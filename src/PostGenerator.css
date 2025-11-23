@@ -125,48 +125,97 @@ h1 {
   margin-bottom: 1rem;
 }
 
-.avatar-placeholder {
+.avatar {
   width: 48px;
   height: 48px;
-  background: #f0f2f5;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  object-fit: cover;
   border: 1px solid var(--border-color);
 }
 
 .user-info {
   display: flex;
   flex-direction: column;
+  gap: 2px;
 }
 
 .name-row {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
 .name {
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-color);
   font-size: 1rem;
 }
 
 .blue-tick {
-  /* Size handled by prop, but alignment here */
   display: block;
+}
+
+.dot {
+  color: var(--secondary-text);
+  font-size: 0.8rem;
+}
+
+.follow-text {
+  color: #0a66c2;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.handle-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .username {
   color: var(--secondary-text);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+}
+
+.linkedin-icon {
+  opacity: 0.8;
 }
 
 .post-content {
   color: var(--text-color);
-  font-size: 1.25rem;
+  font-size: 1rem;
   line-height: 1.5;
   white-space: pre-wrap;
   word-wrap: break-word;
+  margin-bottom: 1.5rem;
+}
+
+.post-footer {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+  color: var(--secondary-text);
+}
+
+.interaction-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.interaction-item:hover {
+  background-color: #f3f6f8;
+  color: var(--text-color);
+}
+
+.interaction-item .icon {
+  stroke-width: 2px;
 }
