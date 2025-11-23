@@ -71,7 +71,15 @@ const PostGenerator = () => {
       <div className="preview-section">
         <div className={`post-card ${theme}`} ref={postRef}>
           <div className="post-header">
-            <img src="/vamsipenmetsa.jpg" alt="Vamsi Penmetsa" className="avatar" />
+            <img
+              src={`${import.meta.env.BASE_URL}vamsipenmetsa.jpg`}
+              alt="Vamsi Penmetsa"
+              className="avatar"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = 'https://ui-avatars.com/api/?name=Vamsi+Penmetsa&background=random';
+              }}
+            />
             <div className="user-info">
               <div className="name-row">
                 <span className="name">Vamsi Penmetsa</span>
