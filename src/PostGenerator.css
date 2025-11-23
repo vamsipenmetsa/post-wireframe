@@ -107,6 +107,55 @@ h1 {
 }
 
 /* The Post Card - This is what gets screenshotted */
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.theme-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.theme-options {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.theme-btn {
+  flex: 1;
+  padding: 0.8rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.theme-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.theme-btn.active {
+  transform: scale(1.02);
+  box-shadow: 0 0 0 2px var(--primary-color);
+}
+
+/* Post Card Themes */
 .post-card {
   background: white;
   width: 100%;
@@ -116,6 +165,57 @@ h1 {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
   border: 1px solid var(--border-color);
   font-family: 'Inter', sans-serif;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.post-card.light {
+  background: #ffffff;
+  color: #000000;
+  border-color: #e1e8ed;
+}
+
+.post-card.dim {
+  background: #192734;
+  color: #ffffff;
+  border-color: #38444d;
+}
+
+.post-card.dim .name,
+.post-card.dim .post-content,
+.post-card.dim .interaction-item {
+  color: #ffffff;
+}
+
+.post-card.dim .username,
+.post-card.dim .dot,
+.post-card.dim .post-footer {
+  color: #8899a6;
+}
+
+.post-card.dim .interaction-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.post-card.dark {
+  background: #000000;
+  color: #ffffff;
+  border-color: #2f3336;
+}
+
+.post-card.dark .name,
+.post-card.dark .post-content,
+.post-card.dark .interaction-item {
+  color: #d9d9d9;
+}
+
+.post-card.dark .username,
+.post-card.dark .dot,
+.post-card.dark .post-footer {
+  color: #6e767d;
+}
+
+.post-card.dark .interaction-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .post-header {
@@ -123,6 +223,21 @@ h1 {
   align-items: center;
   gap: 12px;
   margin-bottom: 1rem;
+  position: relative;
+}
+
+.linkedin-badge {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border-radius: 4px;
+}
+
+.post-card.dim .linkedin-badge,
+.post-card.dark .linkedin-badge {
+  background: transparent;
 }
 
 .avatar {
@@ -137,6 +252,7 @@ h1 {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  flex-grow: 1;
 }
 
 .name-row {
@@ -178,8 +294,9 @@ h1 {
   font-size: 0.85rem;
 }
 
-.linkedin-icon {
-  opacity: 0.8;
+.linkedin-icon-top-right {
+  margin-left: auto;
+  opacity: 1;
 }
 
 .post-content {
