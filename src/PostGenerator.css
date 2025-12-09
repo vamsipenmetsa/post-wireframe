@@ -1,98 +1,168 @@
 :root {
-  --primary-color: #1DA1F2;
-  --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  --primary-color: #0a66c2;
+  --primary-hover: #1a91da;
+  --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   --card-bg: #ffffff;
-  --text-color: #14171a;
-  --secondary-text: #657786;
-  --border-color: #e1e8ed;
-  --shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  --text-color: #0f1419;
+  --secondary-text: #536471;
+  --border-color: #cfd9de;
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  --glass-bg: rgba(255, 255, 255, 0.9);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 body {
   margin: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background: var(--bg-gradient);
   min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
+  padding: 2rem;
+  box-sizing: border-box;
+  color: var(--text-color);
 }
 
 .container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2rem;
-  padding: 2rem;
+  gap: 3rem;
   width: 100%;
-  max-width: 800px;
+  max-width: 1200px;
 }
 
+/* Glassmorphism Panel for Controls */
 .input-section {
   width: 100%;
   max-width: 600px;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(10px);
-  padding: 2rem;
-  border-radius: 20px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 2.5rem;
+  border-radius: 24px;
   box-shadow: var(--shadow);
+  border: var(--glass-border);
   text-align: center;
 }
 
 h1 {
   margin: 0 0 0.5rem 0;
-  color: var(--text-color);
-  font-weight: 700;
-  letter-spacing: -0.5px;
+  color: #1a1a1a;
+  font-weight: 800;
+  font-size: 2rem;
+  letter-spacing: -1px;
 }
 
 .subtitle {
-  margin: 0 0 1.5rem 0;
+  margin: 0 0 2rem 0;
   color: var(--secondary-text);
-  font-size: 0.95rem;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
 .text-input {
   width: 100%;
   padding: 1rem;
-  border: 2px solid var(--border-color);
-  border-radius: 12px;
-  font-family: 'Inter', sans-serif;
-  font-size: 1rem;
+  border: 2px solid #e1e8ed;
+  border-radius: 16px;
+  font-family: inherit;
+  font-size: 1.1rem;
+  line-height: 1.5;
   resize: vertical;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  background: #f8f9fa;
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+  background: white;
   box-sizing: border-box;
-  margin-bottom: 1.5rem;
+  min-height: 120px;
 }
 
 .text-input:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(29, 161, 242, 0.1);
-  background: #fff;
+  box-shadow: 0 0 0 4px rgba(10, 102, 194, 0.15);
+}
+
+.theme-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  align-items: flex-start;
+  background: #f7f9fa;
+  padding: 1.2rem;
+  border-radius: 16px;
+  border: 1px solid #eff3f4;
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-color);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.theme-options {
+  display: flex;
+  gap: 0.8rem;
+  width: 100%;
+}
+
+.theme-btn {
+  flex: 1;
+  padding: 1rem;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.theme-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.theme-btn.active {
+  transform: scale(1.02);
+  box-shadow: 0 0 0 3px var(--primary-color);
+  z-index: 1;
 }
 
 .download-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.8rem;
   background: var(--primary-color);
   color: white;
   border: none;
-  padding: 0.8rem 1.5rem;
+  padding: 1rem 2rem;
   border-radius: 50px;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 1.1rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: all 0.2s;
   width: 100%;
+  box-shadow: 0 4px 14px rgba(10, 102, 194, 0.4);
 }
 
 .download-btn:hover {
+  background: var(--primary-hover);
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(29, 161, 242, 0.3);
+  box-shadow: 0 6px 20px rgba(10, 102, 194, 0.5);
 }
 
 .download-btn:active {
@@ -103,115 +173,84 @@ h1 {
   width: 100%;
   display: flex;
   justify-content: center;
-  padding: 2rem;
+  padding: 1rem;
 }
 
-/* The Post Card - This is what gets screenshotted */
-.controls {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.theme-selector {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  align-items: flex-start;
-}
-
-.label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-color);
-}
-
-.theme-options {
-  display: flex;
-  gap: 0.5rem;
-  width: 100%;
-}
-
-.theme-btn {
-  flex: 1;
-  padding: 0.8rem;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 0.9rem;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.theme-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.theme-btn.active {
-  transform: scale(1.02);
-  box-shadow: 0 0 0 2px var(--primary-color);
-}
-
-/* Post Card Themes */
+/* The Post Card - High Fidelity & Square Edges */
 .post-card {
   background: white;
   width: 100%;
-  max-width: 500px;
-  padding: 2rem;
-  border-radius: 16px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  max-width: 600px;
+  padding: 2.5rem;
+  border-radius: 0;
+  /* SQUARE EDGES as requested */
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  /* More premium shadow for preview */
   border: 1px solid var(--border-color);
   font-family: 'Inter', sans-serif;
   transition: background-color 0.3s, color 0.3s;
+  position: relative;
+  overflow: hidden;
 }
 
+/* Themes */
 .post-card.light {
   background: #ffffff;
-  color: #000000;
-  border-color: #e1e8ed;
+  color: #0f1419;
+  border-color: #cfd9de;
 }
 
 .post-card.dim {
-  background: #192734;
-  color: #ffffff;
+  background: #15202b;
+  color: #f7f9f9;
   border-color: #38444d;
 }
 
-.post-card.dim .name,
-.post-card.dim .post-content,
-.post-card.dim .interaction-item {
-  color: #ffffff;
+.post-card.dark {
+  background: #000000;
+  color: #e7e9ea;
+  border-color: #2f3336;
+}
+
+/* Theme specifics */
+.post-card.dim .name {
+  color: #f7f9f9;
 }
 
 .post-card.dim .username,
-.post-card.dim .dot,
+.post-card.dim .dot {
+  color: #8b98a5;
+}
+
+.post-card.dim .post-content {
+  color: #f7f9f9;
+}
+
 .post-card.dim .post-footer {
-  color: #8899a6;
+  color: #8b98a5;
+  border-top-color: #38444d;
 }
 
 .post-card.dim .interaction-item:hover {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
-.post-card.dark {
-  background: #000000;
-  color: #ffffff;
-  border-color: #2f3336;
-}
-
-.post-card.dark .name,
-.post-card.dark .post-content,
-.post-card.dark .interaction-item {
-  color: #d9d9d9;
+.post-card.dark .name {
+  color: #e7e9ea;
 }
 
 .post-card.dark .username,
-.post-card.dark .dot,
+.post-card.dark .dot {
+  color: #71767b;
+}
+
+.post-card.dark .post-content {
+  color: #e7e9ea;
+}
+
 .post-card.dark .post-footer {
-  color: #6e767d;
+  color: #71767b;
+  border-top-color: #2f3336;
 }
 
 .post-card.dark .interaction-item:hover {
@@ -220,32 +259,17 @@ h1 {
 
 .post-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
-  margin-bottom: 1rem;
-  position: relative;
-}
-
-.linkedin-badge {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: white;
-  border-radius: 4px;
-}
-
-.post-card.dim .linkedin-badge,
-.post-card.dark .linkedin-badge {
-  background: transparent;
+  margin-bottom: 1.5rem;
 }
 
 .avatar {
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   object-fit: cover;
-  border: 1px solid var(--border-color);
+  border: 2px solid transparent;
 }
 
 .user-info {
@@ -253,6 +277,7 @@ h1 {
   flex-direction: column;
   gap: 2px;
   flex-grow: 1;
+  padding-top: 2px;
 }
 
 .name-row {
@@ -262,9 +287,11 @@ h1 {
 }
 
 .name {
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 1.1rem;
+  /* Larger name */
   color: var(--text-color);
-  font-size: 1rem;
+  line-height: 1.2;
 }
 
 .blue-tick {
@@ -274,63 +301,69 @@ h1 {
 .dot {
   color: var(--secondary-text);
   font-size: 0.8rem;
+  margin: 0 2px;
 }
 
 .follow-text {
-  color: #0a66c2;
-  font-weight: 600;
-  font-size: 0.9rem;
+  color: var(--primary-color);
+  font-weight: 700;
+  font-size: 0.95rem;
   cursor: pointer;
 }
 
 .handle-row {
   display: flex;
   align-items: center;
-  gap: 6px;
 }
 
 .username {
   color: var(--secondary-text);
-  font-size: 0.85rem;
+  font-size: 0.95rem;
+  font-weight: 400;
 }
 
-.linkedin-icon-top-right {
+.linkedin-badge {
   margin-left: auto;
-  opacity: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .post-content {
-  color: var(--text-color);
-  font-size: 1rem;
-  line-height: 1.5;
+  font-size: 1.25rem;
+  /* Larger, more legible text */
+  line-height: 1.4;
   white-space: pre-wrap;
   word-wrap: break-word;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
+  font-weight: 400;
 }
 
 .post-footer {
   display: flex;
   justify-content: space-between;
-  padding-top: 1rem;
+  padding-top: 1.5rem;
   border-top: 1px solid var(--border-color);
   color: var(--secondary-text);
+  margin-top: auto;
 }
 
 .interaction-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.9rem;
+  gap: 10px;
+  font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  padding: 8px;
-  border-radius: 4px;
+  padding: 10px;
+  border-radius: 8px;
   transition: background-color 0.2s;
+  color: inherit;
 }
 
 .interaction-item:hover {
-  background-color: #f3f6f8;
-  color: var(--text-color);
+  background-color: rgba(10, 102, 194, 0.1);
+  color: var(--primary-color);
 }
 
 .interaction-item .icon {

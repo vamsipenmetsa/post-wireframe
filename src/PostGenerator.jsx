@@ -11,7 +11,7 @@ const PostGenerator = () => {
   const handleDownload = async () => {
     if (postRef.current) {
       const canvas = await html2canvas(postRef.current, {
-        scale: 2,
+        scale: 4, // Increased resolution
         backgroundColor: null,
         useCORS: true,
       });
