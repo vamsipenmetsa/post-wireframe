@@ -73,6 +73,7 @@ const PostGenerator = () => {
           <div className="post-header">
             <img
               src={`${import.meta.env.BASE_URL}vamsipenmetsa.jpg`}
+              crossOrigin="anonymous"
               alt="Vamsi Penmetsa"
               className="avatar"
               onError={(e) => {
