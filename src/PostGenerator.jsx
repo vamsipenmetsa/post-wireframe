@@ -11,12 +11,14 @@ const PostGenerator = () => {
   const handleDownload = async () => {
     if (postRef.current) {
       const canvas = await html2canvas(postRef.current, {
-        scale: 4, // Increased resolution
+        scale: 6, // Ultra high resolution
         backgroundColor: null,
         useCORS: true,
+        logging: false,
+        allowTaint: true,
       });
 
-      const image = canvas.toDataURL('image/png');
+      const image = canvas.toDataURL('image/png', 1.0);
       const link = document.createElement('a');
       link.href = image;
       link.download = `vamsi-post-${theme}.png`;
