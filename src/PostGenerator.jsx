@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import html2canvas from 'html2canvas';
 import { BadgeCheck, Download, Linkedin, Heart, Share2, Bookmark, MessageCircle, Palette } from 'lucide-react';
 import './PostGenerator.css';
+import profilePic from './assets/vamsipenmetsa.jpg';
 
 const PostGenerator = () => {
   const [text, setText] = useState('This is a sample post text. Type in the box above to update this preview!');
@@ -72,7 +73,7 @@ const PostGenerator = () => {
         <div className={`post-card ${theme}`} ref={postRef}>
           <div className="post-header">
             <img
-              src={`${import.meta.env.BASE_URL}vamsipenmetsa.jpg`}
+              src={profilePic}
               crossOrigin="anonymous"
               alt="Vamsi Penmetsa"
               className="avatar"
