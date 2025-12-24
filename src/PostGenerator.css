@@ -127,6 +127,40 @@ h1 {
     box-shadow: 0 0 0 2px var(--primary-color);
 }
 
+.action-buttons {
+    display: flex;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+.copy-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: #10a37f;
+    color: white;
+    border: none;
+    padding: 0.9rem 1.5rem;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
+    flex: 1;
+    font-family: 'Inter', sans-serif;
+}
+
+.copy-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(16, 163, 127, 0.3);
+    background: #0d8c6d;
+}
+
+.copy-btn:active {
+    transform: translateY(0);
+}
+
 .download-btn {
     display: flex;
     align-items: center;
@@ -141,7 +175,7 @@ h1 {
     font-weight: 600;
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
-    width: 100%;
+    flex: 1;
     font-family: 'Inter', sans-serif;
 }
 
@@ -153,6 +187,7 @@ h1 {
 .download-btn:active {
     transform: translateY(0);
 }
+
 
 .preview-section {
     width: 100%;
@@ -354,6 +389,18 @@ h1 {
 
 .interaction-item span {
     display: none;
+}
+
+/* Mobile: Stack buttons vertically */
+@media (max-width: 639px) {
+    .action-buttons {
+        flex-direction: column;
+    }
+
+    .copy-btn,
+    .download-btn {
+        width: 100%;
+    }
 }
 
 /* Tablet and larger screens */

@@ -1,11 +1,12 @@
 import React, { useState, useRef } from 'react';
 import html2canvas from 'html2canvas';
-import { BadgeCheck, Download, Linkedin, Heart, Share2, Bookmark, MessageCircle, Palette } from 'lucide-react';
+import { BadgeCheck, Download, Linkedin, Heart, Share2, Bookmark, MessageCircle, Palette, Copy, Check } from 'lucide-react';
 import './PostGenerator.css';
 
 const PostGenerator = () => {
   const [text, setText] = useState('This is a sample post text. Type in the box above to update this preview!');
   const [theme, setTheme] = useState('light');
+  const [copied, setCopied] = useState(false);
   const postRef = useRef(null);
 
   const handleDownload = async () => {
@@ -23,6 +24,42 @@ const PostGenerator = () => {
       link.href = image;
       link.download = `vamsi-post-${theme}.png`;
       link.click();
+    }
+  };
+
+  const handleCopy = async () => {
+    if (postRef.current) {
+      try {
+        const canvas = await html2canvas(postRef.current, {
+          scale: 6, // Ultra high resolution
+          backgroundColor: null,
+          useCORS: true,
+          logging: false,
+          allowTaint: true,
+        });
+
+        // Convert canvas to blob
+        canvas.toBlob(async (blob) => {
+          try {
+            // Use Clipboard API to copy image
+            await navigator.clipboard.write([
+              new ClipboardItem({
+                'image/png': blob
+              })
+            ]);
+
+            // Show success feedback
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+          } catch (err) {
+            console.error('Failed to copy image:', err);
+            alert('Failed to copy image. Please try downloading instead.');
+          }
+        }, 'image/png', 1.0);
+      } catch (err) {
+        console.error('Failed to generate image:', err);
+        alert('Failed to generate image. Please try again.');
+      }
     }
   };
 
@@ -63,10 +100,16 @@ const PostGenerator = () => {
             </div>
           </div>
 
-          <button onClick={handleDownload} className="download-btn">
-            <Download size={20} />
-            Download PNG
-          </button>
+          <div className="action-buttons">
+            <button onClick={handleCopy} className="copy-btn">
+              {copied ? <Check size={20} /> : <Copy size={20} />}
+              {copied ? 'Copied!' : 'Copy Image'}
+            </button>
+            <button onClick={handleDownload} className="download-btn">
+              <Download size={20} />
+              Download PNG
+            </button>
+          </div>
         </div>
       </div>
 
