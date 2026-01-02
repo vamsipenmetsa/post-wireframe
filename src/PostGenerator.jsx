@@ -41,19 +41,67 @@ const PostGenerator = () => {
         // Convert canvas to blob
         canvas.toBlob(async (blob) => {
           try {
-            // Use Clipboard API to copy image
-            await navigator.clipboard.write([
-              new ClipboardItem({
-                'image/png': blob
-              })
-            ]);
+            // Check if device is mobile or if Web Share API is available
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-            // Show success feedback
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
+            // Try Web Share API first (works well on mobile)
+            if (navigator.share && (isMobile || !navigator.clipboard.write)) {
+              const file = new File([blob], `vamsi-post-${theme}.png`, { type: 'image/png' });
+
+              // Check if sharing files is supported
+              if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                  files: [file],
+                  title: 'Vamsi Penmetsa Post',
+                  text: 'Check out this post!'
+                });
+
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+                return;
+              }
+            }
+
+            // Try Clipboard API for desktop browsers
+            if (navigator.clipboard && navigator.clipboard.write) {
+              await navigator.clipboard.write([
+                new ClipboardItem({
+                  'image/png': blob
+                })
+              ]);
+
+              // Show success feedback
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+              return;
+            }
+
+            // Fallback: Download the image
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `vamsi-post-${theme}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            // Show feedback that it was downloaded instead
+            alert('Image downloaded! (Copy to clipboard not supported on this device)');
           } catch (err) {
-            console.error('Failed to copy image:', err);
-            alert('Failed to copy image. Please try downloading instead.');
+            console.error('Failed to copy/share image:', err);
+
+            // Final fallback: Download the image
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `vamsi-post-${theme}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            alert('Image downloaded! (Copy/share not supported on this device)');
           }
         }, 'image/png', 1.0);
       } catch (err) {
@@ -103,7 +151,7 @@ const PostGenerator = () => {
           <div className="action-buttons">
             <button onClick={handleCopy} className="copy-btn">
               {copied ? <Check size={20} /> : <Copy size={20} />}
-              {copied ? 'Copied!' : 'Copy Image'}
+              {copied ? 'Copied!' : (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? 'Share Image' : 'Copy Image')}
             </button>
             <button onClick={handleDownload} className="download-btn">
               <Download size={20} />
