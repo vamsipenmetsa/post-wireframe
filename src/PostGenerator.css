@@ -15,7 +15,8 @@ body {
     min-height: 100vh;
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
+    padding: 1rem 0;
 }
 
 .container {
@@ -29,6 +30,7 @@ body {
     box-sizing: border-box;
 }
 
+/* ── Input Panel ─────────────────────────────────────────── */
 .input-section {
     width: 100%;
     max-width: 600px;
@@ -82,6 +84,97 @@ h1 {
     background: #fff;
 }
 
+/* ── Image Upload ─────────────────────────────────────────── */
+.image-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    align-items: flex-start;
+    text-align: left;
+}
+
+.label-hint {
+    font-weight: 400;
+    color: var(--secondary-text);
+    font-size: 0.78rem;
+}
+
+.drop-zone {
+    width: 100%;
+    box-sizing: border-box;
+    border: 2px dashed var(--border-color);
+    border-radius: 12px;
+    padding: 1.5rem 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    background: #f8f9fa;
+    color: var(--secondary-text);
+    font-size: 0.88rem;
+}
+
+.drop-zone:hover,
+.drop-zone.dragging {
+    border-color: var(--primary-color);
+    background: rgba(29, 161, 242, 0.04);
+    color: var(--text-color);
+}
+
+.drop-icon {
+    color: var(--secondary-text);
+    opacity: 0.6;
+}
+
+.drop-hint {
+    font-size: 0.72rem;
+    opacity: 0.6;
+}
+
+.image-preview-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    background: #f8f9fa;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 0.5rem;
+    box-sizing: border-box;
+}
+
+.image-preview-thumb {
+    width: 64px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+
+.remove-image-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #fee2e2;
+    color: #dc2626;
+    border: none;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-family: 'Inter', sans-serif;
+    margin-left: auto;
+}
+
+.remove-image-btn:hover {
+    background: #fca5a5;
+}
+
+/* ── Theme Selector ───────────────────────────────────────── */
 .theme-selector {
     display: flex;
     flex-direction: column;
@@ -100,33 +193,36 @@ h1 {
 
 .theme-options {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.4rem;
     width: 100%;
     flex-wrap: wrap;
 }
 
 .theme-btn {
-    flex: 1;
-    min-width: 80px;
-    padding: 0.75rem;
+    flex: 1 1 calc(25% - 0.4rem);
+    min-width: 68px;
+    padding: 0.55rem 0.4rem;
     border-radius: 8px;
     cursor: pointer;
     font-weight: 600;
-    font-size: 0.85rem;
-    transition: transform 0.2s, box-shadow 0.2s;
+    font-size: 0.75rem;
+    transition: transform 0.15s, box-shadow 0.15s;
     font-family: 'Inter', sans-serif;
+    white-space: nowrap;
+    text-align: center;
 }
 
 .theme-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
 }
 
 .theme-btn.active {
-    transform: scale(1.02);
+    transform: scale(1.04);
     box-shadow: 0 0 0 2px var(--primary-color);
 }
 
+/* ── Action Buttons ───────────────────────────────────────── */
 .action-buttons {
     display: flex;
     gap: 0.75rem;
@@ -157,9 +253,7 @@ h1 {
     background: #0d8c6d;
 }
 
-.copy-btn:active {
-    transform: translateY(0);
-}
+.copy-btn:active { transform: translateY(0); }
 
 .download-btn {
     display: flex;
@@ -184,11 +278,9 @@ h1 {
     box-shadow: 0 5px 15px rgba(29, 161, 242, 0.3);
 }
 
-.download-btn:active {
-    transform: translateY(0);
-}
+.download-btn:active { transform: translateY(0); }
 
-
+/* ── Preview Section ──────────────────────────────────────── */
 .preview-section {
     width: 100%;
     display: flex;
@@ -197,71 +289,113 @@ h1 {
     box-sizing: border-box;
 }
 
-/* Post Card Themes */
+/* ── Post Card Base ───────────────────────────────────────── */
 .post-card {
-    background: white;
     width: 100%;
     max-width: 500px;
     padding: 1.5rem;
     border-radius: 0;
-    /* Sharp edges - no rounded corners */
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
     border: 1px solid var(--border-color);
     font-family: 'Inter', sans-serif;
     transition: background-color 0.3s, color 0.3s;
     box-sizing: border-box;
+    overflow: hidden;
 }
 
+/* ─── THEME: Light ─────────── */
 .post-card.light {
     background: #ffffff;
     color: #000000;
     border-color: #e1e8ed;
 }
 
+/* ─── THEME: Warm ──────────── */
+.post-card.warm {
+    background: #fdf0e0;
+    color: #3d2b1f;
+    border-color: #e8d5bf;
+}
+.post-card.warm .name, .post-card.warm .post-content, .post-card.warm .interaction-item { color: #3d2b1f; }
+.post-card.warm .username, .post-card.warm .dot, .post-card.warm .post-footer { color: #9c7a5d; }
+.post-card.warm .post-footer { border-top-color: #e8d5bf; }
+.post-card.warm .interaction-item:hover { background-color: rgba(0,0,0,0.05); }
+
+/* ─── THEME: Dim Blue ──────── */
 .post-card.dim {
     background: #192734;
     color: #ffffff;
     border-color: #38444d;
 }
+.post-card.dim .name, .post-card.dim .post-content, .post-card.dim .interaction-item { color: #ffffff; }
+.post-card.dim .username, .post-card.dim .dot, .post-card.dim .post-footer { color: #8899a6; }
+.post-card.dim .post-footer { border-top-color: #38444d; }
+.post-card.dim .interaction-item:hover { background-color: rgba(255,255,255,0.1); }
+.post-card.dim .linkedin-badge { background: transparent; }
 
-.post-card.dim .name,
-.post-card.dim .post-content,
-.post-card.dim .interaction-item {
-    color: #ffffff;
-}
-
-.post-card.dim .username,
-.post-card.dim .dot,
-.post-card.dim .post-footer {
-    color: #8899a6;
-}
-
-.post-card.dim .interaction-item:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
+/* ─── THEME: Dark ──────────── */
 .post-card.dark {
     background: #000000;
     color: #ffffff;
     border-color: #2f3336;
 }
+.post-card.dark .name, .post-card.dark .post-content, .post-card.dark .interaction-item { color: #d9d9d9; }
+.post-card.dark .username, .post-card.dark .dot, .post-card.dark .post-footer { color: #6e767d; }
+.post-card.dark .post-footer { border-top-color: #2f3336; }
+.post-card.dark .interaction-item:hover { background-color: rgba(255,255,255,0.1); }
+.post-card.dark .linkedin-badge { background: transparent; }
 
-.post-card.dark .name,
-.post-card.dark .post-content,
-.post-card.dark .interaction-item {
-    color: #d9d9d9;
+/* ─── THEME: Blue ──────────── */
+.post-card.blue {
+    background: #0a66c2;
+    color: #ffffff;
+    border-color: #0958a8;
 }
+.post-card.blue .name, .post-card.blue .post-content, .post-card.blue .interaction-item { color: #ffffff; }
+.post-card.blue .username, .post-card.blue .dot { color: rgba(255,255,255,0.72); }
+.post-card.blue .post-footer { color: rgba(255,255,255,0.72); border-top-color: rgba(255,255,255,0.2); }
+.post-card.blue .follow-text { color: #a8d4ff; }
+.post-card.blue .interaction-item:hover { background-color: rgba(255,255,255,0.15); }
+.post-card.blue .linkedin-badge { background: rgba(255,255,255,0.15); border-radius: 4px; }
+.post-card.blue .blue-tick { fill: #ffffff !important; }
 
-.post-card.dark .username,
-.post-card.dark .dot,
-.post-card.dark .post-footer {
-    color: #6e767d;
+/* ─── THEME: Midnight ──────── */
+.post-card.midnight {
+    background: #0d1117;
+    color: #e6edf3;
+    border-color: #30363d;
 }
+.post-card.midnight .name, .post-card.midnight .post-content, .post-card.midnight .interaction-item { color: #e6edf3; }
+.post-card.midnight .username, .post-card.midnight .dot, .post-card.midnight .post-footer { color: #6e7681; }
+.post-card.midnight .post-footer { border-top-color: #30363d; }
+.post-card.midnight .interaction-item:hover { background-color: rgba(255,255,255,0.08); }
+.post-card.midnight .linkedin-badge { background: transparent; }
 
-.post-card.dark .interaction-item:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+/* ─── THEME: Ocean ─────────── */
+.post-card.ocean {
+    background: #0c2d48;
+    color: #e8f4fd;
+    border-color: #1a4a6e;
 }
+.post-card.ocean .name, .post-card.ocean .post-content, .post-card.ocean .interaction-item { color: #e8f4fd; }
+.post-card.ocean .username, .post-card.ocean .dot, .post-card.ocean .post-footer { color: #7ab8d9; }
+.post-card.ocean .post-footer { border-top-color: #1a4a6e; }
+.post-card.ocean .interaction-item:hover { background-color: rgba(255,255,255,0.1); }
+.post-card.ocean .linkedin-badge { background: transparent; }
 
+/* ─── THEME: Purple ────────── */
+.post-card.purple {
+    background: #2d1b69;
+    color: #e9d5ff;
+    border-color: #4c2a9e;
+}
+.post-card.purple .name, .post-card.purple .post-content, .post-card.purple .interaction-item { color: #e9d5ff; }
+.post-card.purple .username, .post-card.purple .dot, .post-card.purple .post-footer { color: #a78bfa; }
+.post-card.purple .post-footer { border-top-color: #4c2a9e; }
+.post-card.purple .interaction-item:hover { background-color: rgba(255,255,255,0.1); }
+.post-card.purple .linkedin-badge { background: transparent; }
+
+/* ── Card internals ───────────────────────────────────────── */
 .post-header {
     display: flex;
     align-items: center;
@@ -276,14 +410,8 @@ h1 {
     align-items: center;
     justify-content: center;
     background: white;
-    border-radius: 0;
-    /* Sharp edges */
     padding: 4px;
-}
-
-.post-card.dim .linkedin-badge,
-.post-card.dark .linkedin-badge {
-    background: transparent;
+    border-radius: 0;
 }
 
 .avatar {
@@ -353,6 +481,19 @@ h1 {
     margin-bottom: 1.25rem;
 }
 
+/* ── Attached image (full-bleed) ──────────────────────────── */
+.post-image-container {
+    margin: 0 -1.5rem 1.25rem -1.5rem;
+}
+
+.post-image {
+    width: 100%;
+    max-height: 420px;
+    object-fit: cover;
+    display: block;
+}
+
+/* ── Footer ───────────────────────────────────────────────── */
 .post-footer {
     display: flex;
     justify-content: space-between;
@@ -371,7 +512,6 @@ h1 {
     cursor: pointer;
     padding: 6px 8px;
     border-radius: 0;
-    /* Sharp edges */
     transition: background-color 0.2s;
     flex: 1;
     justify-content: center;
@@ -391,92 +531,41 @@ h1 {
     display: none;
 }
 
-/* Mobile: Stack buttons vertically */
+/* ── Responsive ───────────────────────────────────────────── */
 @media (max-width: 639px) {
-    .action-buttons {
-        flex-direction: column;
-    }
-
-    .copy-btn,
-    .download-btn {
-        width: 100%;
-    }
+    .action-buttons { flex-direction: column; }
+    .copy-btn, .download-btn { width: 100%; }
 }
 
-/* Tablet and larger screens */
 @media (min-width: 640px) {
-    .container {
-        padding: 2rem;
-    }
+    .container { padding: 2rem; }
+    .input-section { padding: 2rem; }
+    h1 { font-size: 2rem; }
+    .subtitle { font-size: 0.95rem; }
+    .controls { gap: 1.5rem; }
+    .text-input { min-height: 120px; }
+    .theme-btn { font-size: 0.82rem; padding: 0.65rem 0.5rem; }
 
-    .input-section {
-        padding: 2rem;
-    }
-
-    h1 {
-        font-size: 2rem;
-    }
-
-    .subtitle {
-        font-size: 0.95rem;
-    }
-
-    .controls {
-        gap: 1.5rem;
-    }
-
-    .text-input {
-        min-height: 120px;
-    }
-
-    .theme-btn {
-        font-size: 0.9rem;
-        padding: 0.8rem;
-    }
-
-    .post-card {
-        padding: 2rem;
-    }
-
-    .post-header {
-        gap: 12px;
-    }
-
-    .name {
-        font-size: 1rem;
-    }
-
-    .follow-text {
-        font-size: 0.9rem;
-    }
-
-    .username {
-        font-size: 0.85rem;
-    }
-
-    .post-content {
-        font-size: 1rem;
-    }
-
-    .post-footer {
-        padding-top: 1rem;
-    }
-
+    .post-card { padding: 2rem; }
+    .post-header { gap: 12px; }
+    .name { font-size: 1rem; }
+    .follow-text { font-size: 0.9rem; }
+    .username { font-size: 0.85rem; }
+    .post-content { font-size: 1rem; }
+    .post-footer { padding-top: 1rem; }
     .interaction-item {
         font-size: 0.85rem;
         gap: 8px;
         padding: 8px;
         justify-content: flex-start;
     }
+    .interaction-item span { display: inline; }
 
-    .interaction-item span {
-        display: inline;
+    .post-image-container {
+        margin: 0 -2rem 1.25rem -2rem;
     }
 }
 
-/* Desktop screens */
 @media (min-width: 1024px) {
-    .interaction-item {
-        font-size: 0.9rem;
-    }
+    .interaction-item { font-size: 0.9rem; }
 }
