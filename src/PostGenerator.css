@@ -185,6 +185,50 @@ h1 {
     background: #fca5a5;
 }
 
+/* ── Font Selector ────────────────────────────────────────── */
+.font-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+
+.font-options {
+    display: flex;
+    gap: 0.4rem;
+    width: 100%;
+    flex-wrap: wrap;
+}
+
+.font-btn {
+    flex: 1 1 calc(25% - 0.4rem);
+    min-width: 72px;
+    padding: 0.55rem 0.4rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 0.78rem;
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+    background: #f8f9fa;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    white-space: nowrap;
+    text-align: center;
+}
+
+.font-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    border-color: var(--primary-color);
+}
+
+.font-btn.active {
+    border: 2px solid var(--primary-color);
+    background: rgba(29, 161, 242, 0.06);
+    transform: scale(1.04);
+    box-shadow: 0 0 0 2px rgba(29, 161, 242, 0.1);
+}
+
 /* ── Theme Selector ───────────────────────────────────────── */
 .theme-selector {
     display: flex;
@@ -548,6 +592,14 @@ h1 {
     display: block;
 }
 
+/* ── Post Video ───────────────────────────────────────────── */
+.post-video {
+    width: 100%;
+    height: 280px;
+    object-fit: cover;
+    display: block;
+}
+
 /* ── Footer ───────────────────────────────────────────────── */
 .post-footer {
     display: flex;
@@ -624,6 +676,8 @@ h1 {
     .post-images-grid.dual .post-img {
         height: 300px;
     }
+
+    .post-video { height: 300px; }
 }
 
 @media (min-width: 1024px) {

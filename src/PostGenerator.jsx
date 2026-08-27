@@ -1,35 +1,59 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import html2canvas from 'html2canvas';
-import { BadgeCheck, Download, Linkedin, Heart, Share2, Bookmark, MessageCircle, Palette, Copy, Check, ImagePlus, X, ClipboardPaste } from 'lucide-react';
+import { BadgeCheck, Download, Linkedin, Heart, Share2, Bookmark, MessageCircle, Palette, Copy, Check, ImagePlus, X, ClipboardPaste, Type, Film } from 'lucide-react';
 import './PostGenerator.css';
+
+const FONTS = [
+  { id: 'inter',         name: 'Inter',        css: "'Inter', sans-serif" },
+  { id: 'space-grotesk', name: 'Space Grotesk', css: "'Space Grotesk', sans-serif" },
+  { id: 'plus-jakarta',  name: 'Jakarta',       css: "'Plus Jakarta Sans', sans-serif" },
+  { id: 'dm-sans',       name: 'DM Sans',       css: "'DM Sans', sans-serif" },
+  { id: 'sora',          name: 'Sora',          css: "'Sora', sans-serif" },
+  { id: 'outfit',        name: 'Outfit',        css: "'Outfit', sans-serif" },
+  { id: 'manrope',       name: 'Manrope',       css: "'Manrope', sans-serif" },
+];
 
 const PostGenerator = () => {
   const [text, setText] = useState('This is a sample post text. Type in the box above to update this preview!');
   const [theme, setTheme] = useState('dim');
+  const [font, setFont] = useState('inter');
   const [copied, setCopied] = useState(false);
   const [images, setImages] = useState([]);          // max 2 images
+  const [video, setVideo] = useState(null);          // base64 data URL
   const [dragging, setDragging] = useState(false);
   const [pasteFlash, setPasteFlash] = useState(false);
   const postRef = useRef(null);
   const fileInputRef = useRef(null);
+  const videoInputRef = useRef(null);
+  const videoRef = useRef(null);
 
-  // ── Add image (file → base64) ──────────────────────────────
+  // ── Add image (clears video) ───────────────────────────────
   const addImage = useCallback((file) => {
     if (!file || !file.type.startsWith('image/')) return;
+    setVideo(null);
     setImages(prev => {
-      if (prev.length >= 2) return prev;          // max 2
+      if (prev.length >= 2) return prev;
       const reader = new FileReader();
       reader.onload = (e) =>
         setImages(p => [...p, e.target.result].slice(0, 2));
       reader.readAsDataURL(file);
-      return prev;                                // no-op until reader fires
+      return prev;
     });
   }, []);
 
   const removeImage = (idx) =>
     setImages(prev => prev.filter((_, i) => i !== idx));
 
-  // ── Global paste handler (Twitter/X clipboard screenshots) ──
+  // ── Add video (clears images) ──────────────────────────────
+  const addVideo = useCallback((file) => {
+    if (!file || !file.type.startsWith('video/')) return;
+    setImages([]);
+    const reader = new FileReader();
+    reader.onload = (e) => setVideo(e.target.result);
+    reader.readAsDataURL(file);
+  }, []);
+
+  // ── Global paste handler ───────────────────────────────────
   useEffect(() => {
     const onPaste = (e) => {
       const items = e.clipboardData?.items;
@@ -51,23 +75,39 @@ const PostGenerator = () => {
   }, [addImage]);
 
   // ── File input / drag-drop ─────────────────────────────────
-  const handleFileInput  = (e) => addImage(e.target.files[0]);
-  const handleDrop = (e) => {
-    e.preventDefault();
-    setDragging(false);
-    addImage(e.dataTransfer.files[0]);
-  };
+  const handleFileInput   = (e) => addImage(e.target.files[0]);
+  const handleDrop        = (e) => { e.preventDefault(); setDragging(false); addImage(e.dataTransfer.files[0]); };
+  const handleVideoInput  = (e) => addVideo(e.target.files[0]);
+  const handleVideoDrop   = (e) => { e.preventDefault(); addVideo(e.dataTransfer.files[0]); };
 
-  // ── Export ─────────────────────────────────────────────────
+  // ── Export (swaps video → frame img for html2canvas) ──────
   const captureCanvas = async () => {
     if (!postRef.current) return null;
-    return html2canvas(postRef.current, {
-      scale: 6,
-      backgroundColor: null,
-      useCORS: true,
-      logging: false,
-      allowTaint: true,
+
+    let videoImgEl = null, videoWrap = null, originalVideoEl = null;
+
+    if (video && videoRef.current) {
+      const vid = videoRef.current;
+      const tmp = document.createElement('canvas');
+      tmp.width  = vid.videoWidth  || vid.clientWidth;
+      tmp.height = vid.videoHeight || vid.clientHeight;
+      tmp.getContext('2d').drawImage(vid, 0, 0, tmp.width, tmp.height);
+      videoWrap       = vid.parentElement;
+      originalVideoEl = vid;
+      videoImgEl      = document.createElement('img');
+      videoImgEl.src  = tmp.toDataURL('image/png');
+      videoImgEl.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+      videoWrap.replaceChild(videoImgEl, vid);
+    }
+
+    const canvas = await html2canvas(postRef.current, {
+      scale: 6, backgroundColor: null, useCORS: true, logging: false, allowTaint: true,
     });
+
+    if (videoWrap && originalVideoEl && videoImgEl)
+      videoWrap.replaceChild(originalVideoEl, videoImgEl);
+
+    return canvas;
   };
 
   const handleDownload = async () => {
@@ -122,7 +162,8 @@ const PostGenerator = () => {
     { id: 'purple',   name: 'Purple',   bg: '#2d1b69',  fg: '#e9d5ff' },
   ];
 
-  const canAddMore = images.length < 2;
+  const selectedFont = FONTS.find(f => f.id === font)?.css;
+  const canAddMore   = images.length < 2;
 
   return (
     <div className="container">
@@ -150,7 +191,6 @@ const PostGenerator = () => {
               </span>
             </span>
 
-            {/* Existing image thumbnails */}
             {images.length > 0 && (
               <div className="image-thumbs">
                 {images.map((img, i) => (
@@ -164,8 +204,7 @@ const PostGenerator = () => {
               </div>
             )}
 
-            {/* Upload zone — hidden when 2 images loaded */}
-            {canAddMore && (
+            {canAddMore && !video && (
               <div
                 className={`drop-zone ${dragging ? 'dragging' : ''} ${pasteFlash ? 'paste-flash' : ''}`}
                 onClick={() => fileInputRef.current.click()}
@@ -185,13 +224,59 @@ const PostGenerator = () => {
               </div>
             )}
 
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleFileInput}
-              style={{ display: 'none' }}
-            />
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileInput} style={{ display: 'none' }} />
+          </div>
+
+          {/* Video section */}
+          <div className="image-section">
+            <span className="label">
+              <Film size={16} />
+              Video
+              <span className="label-hint">— MP4 · WebM · MOV (replaces images)</span>
+            </span>
+
+            {video ? (
+              <div className="image-thumbs">
+                <div className="thumb-wrap">
+                  <video src={video} className="image-preview-thumb" muted />
+                  <button className="remove-image-btn" onClick={() => setVideo(null)} title="Remove">
+                    <X size={13} />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div
+                className="drop-zone"
+                onClick={() => videoInputRef.current.click()}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={handleVideoDrop}
+              >
+                <Film size={24} className="drop-icon" />
+                <span>Click or drag a video</span>
+                <span className="drop-hint">
+                  {images.length > 0 ? 'Will clear existing images' : 'MP4 · WebM · MOV'}
+                </span>
+              </div>
+            )}
+
+            <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoInput} style={{ display: 'none' }} />
+          </div>
+
+          {/* Font selector */}
+          <div className="font-selector">
+            <span className="label"><Type size={16} /> Font</span>
+            <div className="font-options">
+              {FONTS.map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => setFont(f.id)}
+                  className={`font-btn ${font === f.id ? 'active' : ''}`}
+                  style={{ fontFamily: f.css }}
+                >
+                  {f.name}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Theme selector */}
@@ -254,14 +339,29 @@ const PostGenerator = () => {
           </div>
 
           {/* Text */}
-          <div className="post-content">{text}</div>
+          <div className="post-content" style={{ fontFamily: selectedFont }}>{text}</div>
 
-          {/* Images: 1 = full-bleed, 2 = side-by-side same height */}
+          {/* Images */}
           {images.length > 0 && (
             <div className={`post-images-grid ${images.length === 2 ? 'dual' : 'single'}`}>
               {images.map((img, i) => (
                 <img key={i} src={img} alt={`Attached ${i + 1}`} className="post-img" />
               ))}
+            </div>
+          )}
+
+          {/* Video */}
+          {video && (
+            <div className="post-images-grid single">
+              <video
+                ref={videoRef}
+                src={video}
+                className="post-video"
+                autoPlay
+                muted
+                loop
+                playsInline
+              />
             </div>
           )}
 
