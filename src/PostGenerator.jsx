@@ -20,7 +20,6 @@ const PostGenerator = () => {
   const [font, setFont] = useState('inter');
   const [richText, setRichText] = useState(INITIAL_HTML);
   const [copied, setCopied] = useState(false);
-  const [recording, setRecording] = useState(false);
   const [images, setImages] = useState([]);
   const [video, setVideo] = useState(null);
   const [dragging, setDragging] = useState(false);
@@ -178,136 +177,7 @@ const PostGenerator = () => {
     return canvas;
   };
 
-  // ── Shared: record post card as MP4 (WebM fallback) ───────
-  const recordCardVideo = async () => {
-    const vid = videoRef.current;
-    const card = postRef.current;
-    if (!vid || !card) throw new Error('refs not ready');
-
-    const scale = Math.min(window.devicePixelRatio || 1, 2);
-    const cardRect = card.getBoundingClientRect();
-    const vidRect  = vid.parentElement.getBoundingClientRect();
-    const W  = Math.round(cardRect.width  * scale);
-    const H  = Math.round(cardRect.height * scale);
-    const vx = Math.round((vidRect.left  - cardRect.left) * scale);
-    const vy = Math.round((vidRect.top   - cardRect.top)  * scale);
-    const vw = Math.round(vidRect.width  * scale);
-    const vh = Math.round(vidRect.height * scale);
-
-    // Pre-render card overlay (header + text + footer, transparent hole for video)
-    vid.style.visibility = 'hidden';
-    const overlayCanvas = await html2canvas(card, {
-      scale, backgroundColor: null, useCORS: true, logging: false, allowTaint: true,
-    });
-    vid.style.visibility = '';
-    overlayCanvas.getContext('2d').clearRect(vx, vy, vw, vh);
-    const overlayBitmap = await createImageBitmap(overlayCanvas);
-
-    const recCanvas = document.createElement('canvas');
-    recCanvas.width = W; recCanvas.height = H;
-    const ctx = recCanvas.getContext('2d');
-
-    const fps = 30;
-    const duration = (isFinite(vid.duration) && vid.duration > 0)
-      ? Math.min(vid.duration, 30) : 5;
-    const totalFrames = Math.ceil(duration * fps);
-    const frameDurationUs = Math.round(1_000_000 / fps);
-
-    // ── MP4 via WebCodecs + mp4-muxer (Chrome/Edge) ──────────
-    if (typeof VideoEncoder !== 'undefined') {
-      try {
-        const { Muxer, ArrayBufferTarget } = await import('mp4-muxer');
-        const encoderCfg = { codec: 'avc1.4d002a', width: W, height: H, bitrate: 6_000_000, framerate: fps };
-        const { supported } = await VideoEncoder.isConfigSupported(encoderCfg);
-        if (!supported) throw new Error('avc not supported');
-
-        const target  = new ArrayBufferTarget();
-        const muxer   = new Muxer({ target, video: { codec: 'avc', width: W, height: H }, fastStart: 'in-memory' });
-        const encoder = new VideoEncoder({
-          output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
-          error: (e) => { throw e; },
-        });
-        encoder.configure(encoderCfg);
-
-        vid.pause();
-
-        for (let i = 0; i < totalFrames; i++) {
-          // Seek video to exact frame time for frame-perfect output
-          await new Promise((resolve, reject) => {
-            const t = setTimeout(() => reject(new Error('seek timeout')), 3000);
-            vid.addEventListener('seeked', () => { clearTimeout(t); resolve(); }, { once: true });
-            vid.currentTime = i / fps;
-          });
-
-          ctx.clearRect(0, 0, W, H);
-          ctx.drawImage(vid, vx, vy, vw, vh);
-          ctx.drawImage(overlayBitmap, 0, 0);
-
-          const frame = new VideoFrame(recCanvas, { timestamp: i * frameDurationUs, duration: frameDurationUs });
-          encoder.encode(frame, { keyFrame: i % (fps * 2) === 0 });
-          frame.close();
-
-          // Back-pressure: let encoder drain to avoid OOM on long videos
-          while (encoder.encodeQueueSize > 10) await new Promise(r => setTimeout(r, 0));
-        }
-
-        await encoder.flush();
-        muxer.finalize();
-        vid.currentTime = 0; vid.play().catch(() => {});
-
-        return { blob: new Blob([target.buffer], { type: 'video/mp4' }), ext: 'mp4', mimeType: 'video/mp4' };
-      } catch (err) {
-        console.warn('MP4 via WebCodecs failed, falling back to WebM:', err);
-        vid.currentTime = 0;
-      }
-    }
-
-    // ── Fallback: MediaRecorder → WebM ──────────────────────
-    const mimeType = ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm']
-      .find(t => MediaRecorder.isTypeSupported(t)) || 'video/webm';
-    const stream   = recCanvas.captureStream(fps);
-    const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 6_000_000 });
-    const chunks   = [];
-    recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-
-    let animId;
-    const draw = () => {
-      ctx.clearRect(0, 0, W, H);
-      ctx.drawImage(vid, vx, vy, vw, vh);
-      ctx.drawImage(overlayBitmap, 0, 0);
-      animId = requestAnimationFrame(draw);
-    };
-
-    vid.currentTime = 0;
-    await vid.play().catch(() => {});
-    recorder.start(); draw();
-
-    await new Promise(resolve => setTimeout(() => {
-      cancelAnimationFrame(animId); recorder.stop(); vid.pause(); resolve();
-    }, duration * 1000));
-    await new Promise(resolve => { recorder.onstop = resolve; });
-    vid.play().catch(() => {});
-
-    return { blob: new Blob(chunks, { type: mimeType }), ext: 'webm', mimeType };
-  };
-
   const handleDownload = async () => {
-    if (video) {
-      setRecording(true);
-      try {
-        const { blob, ext } = await recordCardVideo();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = `vamsi-post-${theme}.${ext}`;
-        document.body.appendChild(a); a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 5000);
-      } catch (err) {
-        console.error('Video export failed:', err);
-        alert('Video export failed — try Chrome or Edge.');
-      } finally { setRecording(false); }
-      return;
-    }
     const canvas = await captureCanvas();
     if (!canvas) return;
     const link = document.createElement('a');
@@ -317,29 +187,6 @@ const PostGenerator = () => {
   };
 
   const handleCopy = async () => {
-    if (video) {
-      setRecording(true);
-      try {
-        const { blob, ext, mimeType } = await recordCardVideo();
-        const file = new File([blob], `vamsi-post-${theme}.${ext}`, { type: mimeType });
-        if (navigator.canShare?.({ files: [file] })) {
-          await navigator.share({ files: [file], title: 'Vamsi Penmetsa Post' });
-          setCopied(true); setTimeout(() => setCopied(false), 2000);
-        } else {
-          // Share API unavailable — fall back to download
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url; a.download = file.name;
-          document.body.appendChild(a); a.click();
-          document.body.removeChild(a);
-          setTimeout(() => URL.revokeObjectURL(url), 5000);
-        }
-      } catch (err) {
-        if (err.name !== 'AbortError') console.error('Video share failed:', err);
-      } finally { setRecording(false); }
-      return;
-    }
-
     const canvas = await captureCanvas();
     if (!canvas) return;
     canvas.toBlob(async (blob) => {
@@ -510,16 +357,13 @@ const PostGenerator = () => {
 
           {/* Actions */}
           <div className="action-buttons">
-            <button onClick={handleCopy} className="copy-btn" disabled={recording}>
+            <button onClick={handleCopy} className="copy-btn">
               {copied ? <Check size={20} /> : <Copy size={20} />}
-              {recording ? 'Recording…'
-                : video   ? 'Share Video'
-                : copied  ? 'Copied!'
-                : /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? 'Share' : 'Copy Image'}
+              {copied ? 'Copied!' : /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? 'Share' : 'Copy Image'}
             </button>
-            <button onClick={handleDownload} className="download-btn" disabled={recording}>
+            <button onClick={handleDownload} className="download-btn">
               <Download size={20} />
-              {recording ? 'Recording…' : video ? 'Download Video' : 'Download PNG'}
+              Download PNG
             </button>
           </div>
         </div>
