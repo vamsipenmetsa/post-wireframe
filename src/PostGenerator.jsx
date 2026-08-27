@@ -13,19 +13,93 @@ const FONTS = [
   { id: 'manrope',       name: 'Manrope',       css: "'Manrope', sans-serif" },
 ];
 
+const INITIAL_HTML = 'This is a sample post text. Type here and <strong>select text</strong> to style it!';
+
 const PostGenerator = () => {
-  const [text, setText] = useState('This is a sample post text. Type in the box above to update this preview!');
   const [theme, setTheme] = useState('dim');
   const [font, setFont] = useState('inter');
+  const [richText, setRichText] = useState(INITIAL_HTML);
   const [copied, setCopied] = useState(false);
-  const [images, setImages] = useState([]);          // max 2 images
-  const [video, setVideo] = useState(null);          // base64 data URL
+  const [images, setImages] = useState([]);
+  const [video, setVideo] = useState(null);
   const [dragging, setDragging] = useState(false);
   const [pasteFlash, setPasteFlash] = useState(false);
-  const postRef = useRef(null);
+  const postRef      = useRef(null);
+  const editorRef    = useRef(null);
   const fileInputRef = useRef(null);
   const videoInputRef = useRef(null);
-  const videoRef = useRef(null);
+  const videoRef     = useRef(null);
+
+  // Initialize editor HTML once — do NOT use dangerouslySetInnerHTML on the editor
+  // (that would reset cursor position on every keystroke)
+  useEffect(() => {
+    if (editorRef.current) editorRef.current.innerHTML = INITIAL_HTML;
+  }, []);
+
+  const handleInput = useCallback(() => {
+    setRichText(editorRef.current?.innerHTML || '');
+  }, []);
+
+  // ── Inline formatting ──────────────────────────────────────
+  const applyFormat = useCallback((format) => {
+    if (!editorRef.current) return;
+    editorRef.current.focus();
+    const sel = window.getSelection();
+
+    switch (format) {
+      case 'bold':
+        document.execCommand('bold', false, null);
+        break;
+      case 'italic':
+        document.execCommand('italic', false, null);
+        break;
+      case 'bold-italic':
+        document.execCommand('bold', false, null);
+        document.execCommand('italic', false, null);
+        break;
+      case 'underline':
+        document.execCommand('underline', false, null);
+        break;
+      case 'strikethrough':
+        document.execCommand('strikeThrough', false, null);
+        break;
+      case 'cursive':
+        if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+          const selected = sel.toString();
+          if (selected) {
+            const safe = selected.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            document.execCommand('insertHTML', false,
+              `<span style="font-family:'Dancing Script',cursive">${safe}</span>`
+            );
+          }
+        }
+        break;
+      case 'clear':
+        if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+          document.execCommand('insertText', false, sel.toString());
+        }
+        break;
+      default:
+        break;
+    }
+
+    setRichText(editorRef.current.innerHTML);
+  }, []);
+
+  // ── Editor paste — images → attachment, text → plain ──────
+  const handleEditorPaste = useCallback((e) => {
+    const items = e.clipboardData?.items || [];
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) { addImage(file); setPasteFlash(true); setTimeout(() => setPasteFlash(false), 1200); }
+        return;
+      }
+    }
+    e.preventDefault();
+    document.execCommand('insertText', false, e.clipboardData.getData('text/plain'));
+  }, []); // addImage added below via ref-stable pattern — safe since addImage is stable
 
   // ── Add image (clears video) ───────────────────────────────
   const addImage = useCallback((file) => {
@@ -34,15 +108,13 @@ const PostGenerator = () => {
     setImages(prev => {
       if (prev.length >= 2) return prev;
       const reader = new FileReader();
-      reader.onload = (e) =>
-        setImages(p => [...p, e.target.result].slice(0, 2));
+      reader.onload = (e) => setImages(p => [...p, e.target.result].slice(0, 2));
       reader.readAsDataURL(file);
       return prev;
     });
   }, []);
 
-  const removeImage = (idx) =>
-    setImages(prev => prev.filter((_, i) => i !== idx));
+  const removeImage = (idx) => setImages(prev => prev.filter((_, i) => i !== idx));
 
   // ── Add video (clears images) ──────────────────────────────
   const addVideo = useCallback((file) => {
@@ -53,19 +125,16 @@ const PostGenerator = () => {
     reader.readAsDataURL(file);
   }, []);
 
-  // ── Global paste handler ───────────────────────────────────
+  // ── Global paste — images only, skip when editor has focus ─
   useEffect(() => {
     const onPaste = (e) => {
+      if (e.target === editorRef.current) return;
       const items = e.clipboardData?.items;
       if (!items) return;
       for (const item of items) {
         if (item.type.startsWith('image/')) {
           const file = item.getAsFile();
-          if (file) {
-            addImage(file);
-            setPasteFlash(true);
-            setTimeout(() => setPasteFlash(false), 1200);
-          }
+          if (file) { addImage(file); setPasteFlash(true); setTimeout(() => setPasteFlash(false), 1200); }
           break;
         }
       }
@@ -75,27 +144,25 @@ const PostGenerator = () => {
   }, [addImage]);
 
   // ── File input / drag-drop ─────────────────────────────────
-  const handleFileInput   = (e) => addImage(e.target.files[0]);
-  const handleDrop        = (e) => { e.preventDefault(); setDragging(false); addImage(e.dataTransfer.files[0]); };
-  const handleVideoInput  = (e) => addVideo(e.target.files[0]);
-  const handleVideoDrop   = (e) => { e.preventDefault(); addVideo(e.dataTransfer.files[0]); };
+  const handleFileInput  = (e) => addImage(e.target.files[0]);
+  const handleDrop       = (e) => { e.preventDefault(); setDragging(false); addImage(e.dataTransfer.files[0]); };
+  const handleVideoInput = (e) => addVideo(e.target.files[0]);
+  const handleVideoDrop  = (e) => { e.preventDefault(); addVideo(e.dataTransfer.files[0]); };
 
   // ── Export (swaps video → frame img for html2canvas) ──────
   const captureCanvas = async () => {
     if (!postRef.current) return null;
 
     let videoImgEl = null, videoWrap = null, originalVideoEl = null;
-
     if (video && videoRef.current) {
       const vid = videoRef.current;
       const tmp = document.createElement('canvas');
-      tmp.width  = vid.videoWidth  || vid.clientWidth;
+      tmp.width = vid.videoWidth || vid.clientWidth;
       tmp.height = vid.videoHeight || vid.clientHeight;
       tmp.getContext('2d').drawImage(vid, 0, 0, tmp.width, tmp.height);
-      videoWrap       = vid.parentElement;
-      originalVideoEl = vid;
-      videoImgEl      = document.createElement('img');
-      videoImgEl.src  = tmp.toDataURL('image/png');
+      videoWrap = vid.parentElement; originalVideoEl = vid;
+      videoImgEl = document.createElement('img');
+      videoImgEl.src = tmp.toDataURL('image/png');
       videoImgEl.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
       videoWrap.replaceChild(videoImgEl, vid);
     }
@@ -129,14 +196,12 @@ const PostGenerator = () => {
           const file = new File([blob], `vamsi-post-${theme}.png`, { type: 'image/png' });
           if (navigator.canShare?.({ files: [file] })) {
             await navigator.share({ files: [file], title: 'Vamsi Penmetsa Post' });
-            setCopied(true); setTimeout(() => setCopied(false), 2000);
-            return;
+            setCopied(true); setTimeout(() => setCopied(false), 2000); return;
           }
         }
         if (navigator.clipboard?.write) {
           await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-          setCopied(true); setTimeout(() => setCopied(false), 2000);
-          return;
+          setCopied(true); setTimeout(() => setCopied(false), 2000); return;
         }
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -165,6 +230,15 @@ const PostGenerator = () => {
   const selectedFont = FONTS.find(f => f.id === font)?.css;
   const canAddMore   = images.length < 2;
 
+  const fmtBtn = (format, label, title) => (
+    <button
+      key={format}
+      className={`format-btn${format === 'cursive' ? ' cursive-btn' : ''}${format === 'clear' ? ' clear-btn' : ''}`}
+      onMouseDown={(e) => { e.preventDefault(); applyFormat(format); }}
+      title={title}
+    >{label}</button>
+  );
+
   return (
     <div className="container">
       <div className="input-section">
@@ -172,14 +246,29 @@ const PostGenerator = () => {
         <p className="subtitle">Create a premium LinkedIn-style post card instantly.</p>
 
         <div className="controls">
-          {/* Text */}
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="What's on your mind?"
-            className="text-input"
-            rows="4"
-          />
+
+          {/* Format toolbar + rich text editor */}
+          <div className="editor-wrap">
+            <div className="format-toolbar">
+              {fmtBtn('bold',         <b>B</b>,              'Bold')}
+              {fmtBtn('italic',       <em>I</em>,            'Italic')}
+              {fmtBtn('bold-italic',  <b><em>BI</em></b>,    'Bold Italic')}
+              {fmtBtn('cursive',      'Aa',                  'Cursive / Script')}
+              {fmtBtn('underline',    <u>U</u>,              'Underline')}
+              {fmtBtn('strikethrough',<s>S</s>,              'Strikethrough')}
+              <div className="format-divider" />
+              {fmtBtn('clear',        '✕',                   'Clear formatting')}
+            </div>
+            <div
+              ref={editorRef}
+              contentEditable
+              className="text-input rich-editor"
+              onInput={handleInput}
+              onPaste={handleEditorPaste}
+              data-placeholder="What's on your mind?"
+              suppressContentEditableWarning
+            />
+          </div>
 
           {/* Image section */}
           <div className="image-section">
@@ -190,20 +279,16 @@ const PostGenerator = () => {
                 — up to 2, side-by-side · <ClipboardPaste size={12} style={{display:'inline',verticalAlign:'middle'}} /> Ctrl+V to paste
               </span>
             </span>
-
             {images.length > 0 && (
               <div className="image-thumbs">
                 {images.map((img, i) => (
                   <div key={i} className="thumb-wrap">
                     <img src={img} alt={`Image ${i+1}`} className="image-preview-thumb" />
-                    <button className="remove-image-btn" onClick={() => removeImage(i)} title="Remove">
-                      <X size={13} />
-                    </button>
+                    <button className="remove-image-btn" onClick={() => removeImage(i)} title="Remove"><X size={13} /></button>
                   </div>
                 ))}
               </div>
             )}
-
             {canAddMore && !video && (
               <div
                 className={`drop-zone ${dragging ? 'dragging' : ''} ${pasteFlash ? 'paste-flash' : ''}`}
@@ -215,15 +300,10 @@ const PostGenerator = () => {
                 <ImagePlus size={24} className="drop-icon" />
                 <span>{images.length === 1 ? 'Add 2nd image' : 'Click, drag & drop, or Ctrl+V'}</span>
                 <span className="drop-hint">
-                  {pasteFlash
-                    ? '✓ Image pasted!'
-                    : images.length === 1
-                      ? 'Side by side, same height'
-                      : 'PNG · JPG · GIF · WEBP · paste from clipboard'}
+                  {pasteFlash ? '✓ Image pasted!' : images.length === 1 ? 'Side by side, same height' : 'PNG · JPG · GIF · WEBP · paste from clipboard'}
                 </span>
               </div>
             )}
-
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileInput} style={{ display: 'none' }} />
           </div>
 
@@ -234,31 +314,20 @@ const PostGenerator = () => {
               Video
               <span className="label-hint">— MP4 · WebM · MOV (replaces images)</span>
             </span>
-
             {video ? (
               <div className="image-thumbs">
                 <div className="thumb-wrap">
                   <video src={video} className="image-preview-thumb" muted />
-                  <button className="remove-image-btn" onClick={() => setVideo(null)} title="Remove">
-                    <X size={13} />
-                  </button>
+                  <button className="remove-image-btn" onClick={() => setVideo(null)} title="Remove"><X size={13} /></button>
                 </div>
               </div>
             ) : (
-              <div
-                className="drop-zone"
-                onClick={() => videoInputRef.current.click()}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={handleVideoDrop}
-              >
+              <div className="drop-zone" onClick={() => videoInputRef.current.click()} onDragOver={(e) => e.preventDefault()} onDrop={handleVideoDrop}>
                 <Film size={24} className="drop-icon" />
                 <span>Click or drag a video</span>
-                <span className="drop-hint">
-                  {images.length > 0 ? 'Will clear existing images' : 'MP4 · WebM · MOV'}
-                </span>
+                <span className="drop-hint">{images.length > 0 ? 'Will clear existing images' : 'MP4 · WebM · MOV'}</span>
               </div>
             )}
-
             <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoInput} style={{ display: 'none' }} />
           </div>
 
@@ -267,12 +336,7 @@ const PostGenerator = () => {
             <span className="label"><Type size={16} /> Font</span>
             <div className="font-options">
               {FONTS.map((f) => (
-                <button
-                  key={f.id}
-                  onClick={() => setFont(f.id)}
-                  className={`font-btn ${font === f.id ? 'active' : ''}`}
-                  style={{ fontFamily: f.css }}
-                >
+                <button key={f.id} onClick={() => setFont(f.id)} className={`font-btn ${font === f.id ? 'active' : ''}`} style={{ fontFamily: f.css }}>
                   {f.name}
                 </button>
               ))}
@@ -284,12 +348,7 @@ const PostGenerator = () => {
             <span className="label"><Palette size={16} /> Theme</span>
             <div className="theme-options">
               {themes.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setTheme(t.id)}
-                  className={`theme-btn ${theme === t.id ? 'active' : ''}`}
-                  style={{ background: t.bg, color: t.fg, border: theme === t.id ? '2px solid #1DA1F2' : '1px solid #e1e8ed' }}
-                >
+                <button key={t.id} onClick={() => setTheme(t.id)} className={`theme-btn ${theme === t.id ? 'active' : ''}`} style={{ background: t.bg, color: t.fg, border: theme === t.id ? '2px solid #1DA1F2' : '1px solid #e1e8ed' }}>
                   {t.name}
                 </button>
               ))}
@@ -314,7 +373,6 @@ const PostGenerator = () => {
       <div className="preview-section">
         <div className={`post-card ${theme}`} ref={postRef}>
 
-          {/* Header */}
           <div className="post-header">
             <img
               src={`${import.meta.env.BASE_URL}vamsipenmetsa.jpg`}
@@ -338,8 +396,12 @@ const PostGenerator = () => {
             </div>
           </div>
 
-          {/* Text */}
-          <div className="post-content" style={{ fontFamily: selectedFont }}>{text}</div>
+          {/* Rich text rendered as HTML */}
+          <div
+            className="post-content"
+            style={{ fontFamily: selectedFont }}
+            dangerouslySetInnerHTML={{ __html: richText }}
+          />
 
           {/* Images */}
           {images.length > 0 && (
@@ -353,19 +415,10 @@ const PostGenerator = () => {
           {/* Video */}
           {video && (
             <div className="post-images-grid single">
-              <video
-                ref={videoRef}
-                src={video}
-                className="post-video"
-                autoPlay
-                muted
-                loop
-                playsInline
-              />
+              <video ref={videoRef} src={video} className="post-video" autoPlay muted loop playsInline />
             </div>
           )}
 
-          {/* Footer */}
           <div className="post-footer">
             <div className="interaction-item"><Heart   size={20} className="icon" /><span>Like</span></div>
             <div className="interaction-item"><MessageCircle size={20} className="icon" /><span>Comment</span></div>

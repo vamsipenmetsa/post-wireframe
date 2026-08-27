@@ -84,6 +84,112 @@ h1 {
     background: #fff;
 }
 
+/* Override .text-input border when used inside .editor-wrap */
+.editor-wrap .text-input {
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+}
+
+/* ── Rich Text Editor ────────────────────────────────────── */
+.editor-wrap {
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background: #f8f9fa;
+}
+
+.editor-wrap:focus-within {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(29, 161, 242, 0.1);
+    background: #fff;
+}
+
+.format-toolbar {
+    display: flex;
+    gap: 0.15rem;
+    align-items: center;
+    padding: 0.35rem 0.5rem;
+    background: #f0f2f5;
+    border-bottom: 1px solid var(--border-color);
+    flex-wrap: wrap;
+}
+
+.format-btn {
+    width: 30px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.82rem;
+    color: var(--text-color);
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.format-btn:hover {
+    background: rgba(29, 161, 242, 0.1);
+    border-color: rgba(29, 161, 242, 0.3);
+    color: var(--primary-color);
+}
+
+.cursive-btn {
+    font-family: 'Dancing Script', cursive;
+    font-size: 1rem;
+    width: 36px;
+    font-weight: 600;
+}
+
+.clear-btn {
+    color: #c0392b;
+    font-size: 0.65rem;
+    font-weight: 700;
+}
+
+.clear-btn:hover {
+    background: rgba(192, 57, 43, 0.1);
+    border-color: rgba(192, 57, 43, 0.3);
+    color: #c0392b;
+}
+
+.format-divider {
+    width: 1px;
+    height: 18px;
+    background: var(--border-color);
+    margin: 0 0.15rem;
+    flex-shrink: 0;
+}
+
+.rich-editor {
+    border: none;
+    border-radius: 0;
+    outline: none;
+    min-height: 100px;
+    box-sizing: border-box;
+    background: transparent;
+    font-family: 'Inter', sans-serif;
+    line-height: 1.5;
+    cursor: text;
+    word-wrap: break-word;
+}
+
+.rich-editor:empty::before {
+    content: attr(data-placeholder);
+    color: var(--secondary-text);
+    opacity: 0.6;
+    pointer-events: none;
+    display: block;
+}
+
 /* ── Image Upload ─────────────────────────────────────────── */
 .image-section {
     display: flex;
@@ -531,7 +637,6 @@ h1 {
     color: var(--text-color);
     font-size: 0.95rem;
     line-height: 1.5;
-    white-space: pre-wrap;
     word-wrap: break-word;
     margin-bottom: 1.25rem;
 }
