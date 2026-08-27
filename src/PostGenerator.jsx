@@ -20,6 +20,7 @@ const PostGenerator = () => {
   const [font, setFont] = useState('inter');
   const [richText, setRichText] = useState(INITIAL_HTML);
   const [copied, setCopied] = useState(false);
+  const [recording, setRecording] = useState(false);
   const [images, setImages] = useState([]);
   const [video, setVideo] = useState(null);
   const [dragging, setDragging] = useState(false);
@@ -177,7 +178,100 @@ const PostGenerator = () => {
     return canvas;
   };
 
+  // ── Video export via canvas recording ─────────────────────
+  const downloadAsVideo = async () => {
+    const vid = videoRef.current;
+    const card = postRef.current;
+    if (!vid || !card) return;
+
+    setRecording(true);
+    try {
+      const scale = Math.min(window.devicePixelRatio || 1, 2);
+      const cardRect = card.getBoundingClientRect();
+      const vidContainer = vid.parentElement;
+      const vidRect = vidContainer.getBoundingClientRect();
+
+      const W = Math.round(cardRect.width  * scale);
+      const H = Math.round(cardRect.height * scale);
+      const vx = Math.round((vidRect.left   - cardRect.left) * scale);
+      const vy = Math.round((vidRect.top    - cardRect.top)  * scale);
+      const vw = Math.round(vidRect.width   * scale);
+      const vh = Math.round(vidRect.height  * scale);
+
+      // Render card overlay without the video visible
+      vid.style.visibility = 'hidden';
+      const overlayCanvas = await html2canvas(card, {
+        scale, backgroundColor: null, useCORS: true, logging: false, allowTaint: true,
+      });
+      vid.style.visibility = '';
+
+      // Punch a transparent hole where the video sits so the live frame shows through
+      overlayCanvas.getContext('2d').clearRect(vx, vy, vw, vh);
+      const overlayBitmap = await createImageBitmap(overlayCanvas);
+
+      // Recording canvas + stream
+      const recCanvas = document.createElement('canvas');
+      recCanvas.width  = W;
+      recCanvas.height = H;
+      const ctx = recCanvas.getContext('2d');
+
+      const mimeType = ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm','video/mp4']
+        .find(t => MediaRecorder.isTypeSupported(t)) || '';
+      const stream   = recCanvas.captureStream(30);
+      const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 6_000_000 });
+      const chunks   = [];
+      recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+
+      const duration = (isFinite(vid.duration) && vid.duration > 0)
+        ? Math.min(vid.duration * 1000, 30_000)
+        : 5_000;
+
+      // Draw loop: live video frame behind the card overlay
+      let animId;
+      const draw = () => {
+        ctx.clearRect(0, 0, W, H);
+        ctx.drawImage(vid, vx, vy, vw, vh);
+        ctx.drawImage(overlayBitmap, 0, 0);
+        animId = requestAnimationFrame(draw);
+      };
+
+      vid.currentTime = 0;
+      await vid.play().catch(() => {});
+      recorder.start();
+      draw();
+
+      await new Promise(resolve => {
+        setTimeout(() => {
+          cancelAnimationFrame(animId);
+          recorder.stop();
+          vid.pause();
+          resolve();
+        }, duration);
+      });
+
+      await new Promise(resolve => { recorder.onstop = resolve; });
+
+      const ext  = mimeType.includes('mp4') ? 'mp4' : 'webm';
+      const blob = new Blob(chunks, { type: mimeType });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url; a.download = `vamsi-post-${theme}.${ext}`;
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+      // Resume looping playback
+      vid.play().catch(() => {});
+    } catch (err) {
+      console.error('Video export failed:', err);
+      alert('Video export failed — try a different browser (Chrome/Edge work best).');
+    } finally {
+      setRecording(false);
+    }
+  };
+
   const handleDownload = async () => {
+    if (video) { await downloadAsVideo(); return; }
     const canvas = await captureCanvas();
     if (!canvas) return;
     const link = document.createElement('a');
@@ -361,9 +455,9 @@ const PostGenerator = () => {
               {copied ? <Check size={20} /> : <Copy size={20} />}
               {copied ? 'Copied!' : (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? 'Share' : 'Copy Image')}
             </button>
-            <button onClick={handleDownload} className="download-btn">
+            <button onClick={handleDownload} className="download-btn" disabled={recording}>
               <Download size={20} />
-              Download PNG
+              {recording ? 'Recording…' : video ? 'Download Video' : 'Download PNG'}
             </button>
           </div>
         </div>
