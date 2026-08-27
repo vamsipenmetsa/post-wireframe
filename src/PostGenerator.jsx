@@ -178,100 +178,86 @@ const PostGenerator = () => {
     return canvas;
   };
 
-  // ── Video export via canvas recording ─────────────────────
-  const downloadAsVideo = async () => {
+  // ── Shared: record post card as video blob ─────────────────
+  const recordCardVideo = async () => {
     const vid = videoRef.current;
     const card = postRef.current;
-    if (!vid || !card) return;
+    if (!vid || !card) throw new Error('refs not ready');
 
-    setRecording(true);
-    try {
-      const scale = Math.min(window.devicePixelRatio || 1, 2);
-      const cardRect = card.getBoundingClientRect();
-      const vidContainer = vid.parentElement;
-      const vidRect = vidContainer.getBoundingClientRect();
+    const scale = Math.min(window.devicePixelRatio || 1, 2);
+    const cardRect = card.getBoundingClientRect();
+    const vidRect  = vid.parentElement.getBoundingClientRect();
 
-      const W = Math.round(cardRect.width  * scale);
-      const H = Math.round(cardRect.height * scale);
-      const vx = Math.round((vidRect.left   - cardRect.left) * scale);
-      const vy = Math.round((vidRect.top    - cardRect.top)  * scale);
-      const vw = Math.round(vidRect.width   * scale);
-      const vh = Math.round(vidRect.height  * scale);
+    const W  = Math.round(cardRect.width  * scale);
+    const H  = Math.round(cardRect.height * scale);
+    const vx = Math.round((vidRect.left  - cardRect.left) * scale);
+    const vy = Math.round((vidRect.top   - cardRect.top)  * scale);
+    const vw = Math.round(vidRect.width  * scale);
+    const vh = Math.round(vidRect.height * scale);
 
-      // Render card overlay without the video visible
-      vid.style.visibility = 'hidden';
-      const overlayCanvas = await html2canvas(card, {
-        scale, backgroundColor: null, useCORS: true, logging: false, allowTaint: true,
-      });
-      vid.style.visibility = '';
+    vid.style.visibility = 'hidden';
+    const overlayCanvas = await html2canvas(card, {
+      scale, backgroundColor: null, useCORS: true, logging: false, allowTaint: true,
+    });
+    vid.style.visibility = '';
+    overlayCanvas.getContext('2d').clearRect(vx, vy, vw, vh);
+    const overlayBitmap = await createImageBitmap(overlayCanvas);
 
-      // Punch a transparent hole where the video sits so the live frame shows through
-      overlayCanvas.getContext('2d').clearRect(vx, vy, vw, vh);
-      const overlayBitmap = await createImageBitmap(overlayCanvas);
+    const recCanvas = document.createElement('canvas');
+    recCanvas.width = W; recCanvas.height = H;
+    const ctx = recCanvas.getContext('2d');
 
-      // Recording canvas + stream
-      const recCanvas = document.createElement('canvas');
-      recCanvas.width  = W;
-      recCanvas.height = H;
-      const ctx = recCanvas.getContext('2d');
+    const mimeType = ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm','video/mp4']
+      .find(t => MediaRecorder.isTypeSupported(t)) || '';
+    const stream   = recCanvas.captureStream(30);
+    const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 6_000_000 });
+    const chunks   = [];
+    recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
 
-      const mimeType = ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm','video/mp4']
-        .find(t => MediaRecorder.isTypeSupported(t)) || '';
-      const stream   = recCanvas.captureStream(30);
-      const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 6_000_000 });
-      const chunks   = [];
-      recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+    const duration = (isFinite(vid.duration) && vid.duration > 0)
+      ? Math.min(vid.duration * 1000, 30_000) : 5_000;
 
-      const duration = (isFinite(vid.duration) && vid.duration > 0)
-        ? Math.min(vid.duration * 1000, 30_000)
-        : 5_000;
+    let animId;
+    const draw = () => {
+      ctx.clearRect(0, 0, W, H);
+      ctx.drawImage(vid, vx, vy, vw, vh);
+      ctx.drawImage(overlayBitmap, 0, 0);
+      animId = requestAnimationFrame(draw);
+    };
 
-      // Draw loop: live video frame behind the card overlay
-      let animId;
-      const draw = () => {
-        ctx.clearRect(0, 0, W, H);
-        ctx.drawImage(vid, vx, vy, vw, vh);
-        ctx.drawImage(overlayBitmap, 0, 0);
-        animId = requestAnimationFrame(draw);
-      };
+    vid.currentTime = 0;
+    await vid.play().catch(() => {});
+    recorder.start();
+    draw();
 
-      vid.currentTime = 0;
-      await vid.play().catch(() => {});
-      recorder.start();
-      draw();
+    await new Promise(resolve => setTimeout(() => {
+      cancelAnimationFrame(animId); recorder.stop(); vid.pause(); resolve();
+    }, duration));
 
-      await new Promise(resolve => {
-        setTimeout(() => {
-          cancelAnimationFrame(animId);
-          recorder.stop();
-          vid.pause();
-          resolve();
-        }, duration);
-      });
+    await new Promise(resolve => { recorder.onstop = resolve; });
+    vid.play().catch(() => {});
 
-      await new Promise(resolve => { recorder.onstop = resolve; });
-
-      const ext  = mimeType.includes('mp4') ? 'mp4' : 'webm';
-      const blob = new Blob(chunks, { type: mimeType });
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement('a');
-      a.href = url; a.download = `vamsi-post-${theme}.${ext}`;
-      document.body.appendChild(a); a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
-
-      // Resume looping playback
-      vid.play().catch(() => {});
-    } catch (err) {
-      console.error('Video export failed:', err);
-      alert('Video export failed — try a different browser (Chrome/Edge work best).');
-    } finally {
-      setRecording(false);
-    }
+    const ext  = mimeType.includes('mp4') ? 'mp4' : 'webm';
+    return { blob: new Blob(chunks, { type: mimeType }), ext, mimeType };
   };
 
   const handleDownload = async () => {
-    if (video) { await downloadAsVideo(); return; }
+    if (video) {
+      setRecording(true);
+      try {
+        const { blob, ext } = await recordCardVideo();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `vamsi-post-${theme}.${ext}`;
+        document.body.appendChild(a); a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      } catch (err) {
+        console.error('Video export failed:', err);
+        alert('Video export failed — try Chrome or Edge.');
+      } finally { setRecording(false); }
+      return;
+    }
     const canvas = await captureCanvas();
     if (!canvas) return;
     const link = document.createElement('a');
@@ -281,6 +267,29 @@ const PostGenerator = () => {
   };
 
   const handleCopy = async () => {
+    if (video) {
+      setRecording(true);
+      try {
+        const { blob, ext, mimeType } = await recordCardVideo();
+        const file = new File([blob], `vamsi-post-${theme}.${ext}`, { type: mimeType });
+        if (navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file], title: 'Vamsi Penmetsa Post' });
+          setCopied(true); setTimeout(() => setCopied(false), 2000);
+        } else {
+          // Share API unavailable — fall back to download
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = file.name;
+          document.body.appendChild(a); a.click();
+          document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(url), 5000);
+        }
+      } catch (err) {
+        if (err.name !== 'AbortError') console.error('Video share failed:', err);
+      } finally { setRecording(false); }
+      return;
+    }
+
     const canvas = await captureCanvas();
     if (!canvas) return;
     canvas.toBlob(async (blob) => {
@@ -451,9 +460,12 @@ const PostGenerator = () => {
 
           {/* Actions */}
           <div className="action-buttons">
-            <button onClick={handleCopy} className="copy-btn">
+            <button onClick={handleCopy} className="copy-btn" disabled={recording}>
               {copied ? <Check size={20} /> : <Copy size={20} />}
-              {copied ? 'Copied!' : (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? 'Share' : 'Copy Image')}
+              {recording ? 'Recording…'
+                : video   ? 'Share Video'
+                : copied  ? 'Copied!'
+                : /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? 'Share' : 'Copy Image'}
             </button>
             <button onClick={handleDownload} className="download-btn" disabled={recording}>
               <Download size={20} />
