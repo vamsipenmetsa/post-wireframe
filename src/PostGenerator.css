@@ -680,9 +680,10 @@ h1 {
 
 .post-images-grid.single .post-img {
     width: 100%;
-    height: 280px;
-    object-fit: cover;
+    max-height: 510px;
+    object-fit: contain;
     display: block;
+    background: #000;
 }
 
 /* Dual: side by side, SAME height as single so card doesn't grow */
