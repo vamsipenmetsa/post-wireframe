@@ -169,6 +169,8 @@ const PostGenerator = () => {
 
     // html2canvas ignores object-fit — replace .post-img elements with canvases
     // that manually apply contain (single) or cover (dual) before capture.
+    // Canvas internal resolution must match html2canvas scale (6×) to avoid blur.
+    const H2C_SCALE = 6;
     const imgSwaps = [];
     const postImgEls = postRef.current.querySelectorAll('.post-img');
     const isSingle = postImgEls.length === 1;
@@ -177,22 +179,23 @@ const PostGenerator = () => {
       const h = imgEl.offsetHeight;
       const natW = imgEl.naturalWidth || w;
       const natH = imgEl.naturalHeight || h;
+      const cw = w * H2C_SCALE, ch = h * H2C_SCALE;
       const cvs = document.createElement('canvas');
-      cvs.width = w; cvs.height = h;
+      cvs.width = cw; cvs.height = ch;
       cvs.style.cssText = `width:${w}px;height:${h}px;display:block;`;
       const ctx = cvs.getContext('2d');
       ctx.fillStyle = '#000';
-      ctx.fillRect(0, 0, w, h);
+      ctx.fillRect(0, 0, cw, ch);
       if (isSingle) {
         // contain: scale to fit, center
-        const scale = Math.min(w / natW, h / natH);
+        const scale = Math.min(cw / natW, ch / natH);
         const dw = natW * scale, dh = natH * scale;
-        ctx.drawImage(imgEl, (w - dw) / 2, (h - dh) / 2, dw, dh);
+        ctx.drawImage(imgEl, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
       } else {
         // cover: scale to fill, center-crop
-        const scale = Math.max(w / natW, h / natH);
+        const scale = Math.max(cw / natW, ch / natH);
         const dw = natW * scale, dh = natH * scale;
-        ctx.drawImage(imgEl, (w - dw) / 2, (h - dh) / 2, dw, dh);
+        ctx.drawImage(imgEl, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
       }
       imgEl.parentElement.replaceChild(cvs, imgEl);
       imgSwaps.push({ cvs, imgEl });
