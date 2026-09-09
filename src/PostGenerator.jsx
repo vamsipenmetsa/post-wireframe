@@ -167,9 +167,44 @@ const PostGenerator = () => {
       videoWrap.replaceChild(videoImgEl, vid);
     }
 
+    // html2canvas ignores object-fit — replace .post-img elements with canvases
+    // that manually apply contain (single) or cover (dual) before capture.
+    const imgSwaps = [];
+    const postImgEls = postRef.current.querySelectorAll('.post-img');
+    const isSingle = postImgEls.length === 1;
+    for (const imgEl of postImgEls) {
+      const w = imgEl.offsetWidth;
+      const h = imgEl.offsetHeight;
+      const natW = imgEl.naturalWidth || w;
+      const natH = imgEl.naturalHeight || h;
+      const cvs = document.createElement('canvas');
+      cvs.width = w; cvs.height = h;
+      cvs.style.cssText = `width:${w}px;height:${h}px;display:block;`;
+      const ctx = cvs.getContext('2d');
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, w, h);
+      if (isSingle) {
+        // contain: scale to fit, center
+        const scale = Math.min(w / natW, h / natH);
+        const dw = natW * scale, dh = natH * scale;
+        ctx.drawImage(imgEl, (w - dw) / 2, (h - dh) / 2, dw, dh);
+      } else {
+        // cover: scale to fill, center-crop
+        const scale = Math.max(w / natW, h / natH);
+        const dw = natW * scale, dh = natH * scale;
+        ctx.drawImage(imgEl, (w - dw) / 2, (h - dh) / 2, dw, dh);
+      }
+      imgEl.parentElement.replaceChild(cvs, imgEl);
+      imgSwaps.push({ cvs, imgEl });
+    }
+
     const canvas = await html2canvas(postRef.current, {
       scale: 6, backgroundColor: null, useCORS: true, logging: false, allowTaint: true,
     });
+
+    // Restore original img elements
+    for (const { cvs, imgEl } of imgSwaps)
+      cvs.parentElement.replaceChild(imgEl, cvs);
 
     if (videoWrap && originalVideoEl && videoImgEl)
       videoWrap.replaceChild(originalVideoEl, videoImgEl);
