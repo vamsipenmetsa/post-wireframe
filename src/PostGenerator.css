@@ -673,17 +673,16 @@ h1 {
     overflow: hidden;
 }
 
-/* Single image: fills full width, normal max-height */
+/* Single image: fills full width, cropped to fill (no black bars) */
 .post-images-grid.single {
     grid-template-columns: 1fr;
 }
 
 .post-images-grid.single .post-img {
     width: 100%;
-    max-height: 510px;
-    object-fit: contain;
+    height: 400px;
+    object-fit: cover;
     display: block;
-    background: #000;
 }
 
 /* Dual: side by side, SAME height as single so card doesn't grow */
@@ -694,14 +693,6 @@ h1 {
 .post-images-grid.dual .post-img {
     width: 100%;
     height: 280px;     /* identical to single — card height unchanged */
-    object-fit: cover;
-    display: block;
-}
-
-/* ── Post Video ───────────────────────────────────────────── */
-.post-video {
-    width: 100%;
-    height: 280px;
     object-fit: cover;
     display: block;
 }
@@ -778,12 +769,8 @@ h1 {
         margin: 0 -2rem 1.25rem -2rem;
     }
 
-    .post-images-grid.single .post-img,
-    .post-images-grid.dual .post-img {
-        height: 300px;
-    }
-
-    .post-video { height: 300px; }
+    .post-images-grid.single .post-img { height: 420px; }
+    .post-images-grid.dual .post-img   { height: 300px; }
 }
 
 @media (min-width: 1024px) {

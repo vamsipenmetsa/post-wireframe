@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import html2canvas from 'html2canvas';
-import { BadgeCheck, Download, Linkedin, Heart, Share2, Bookmark, MessageCircle, Palette, Copy, Check, ImagePlus, X, ClipboardPaste, Type, Film } from 'lucide-react';
+import { BadgeCheck, Download, Linkedin, Heart, Share2, Bookmark, MessageCircle, Palette, Copy, Check, ImagePlus, X, ClipboardPaste, Type } from 'lucide-react';
 import './PostGenerator.css';
 
 const FONTS = [
@@ -21,14 +21,11 @@ const PostGenerator = () => {
   const [richText, setRichText] = useState(INITIAL_HTML);
   const [copied, setCopied] = useState(false);
   const [images, setImages] = useState([]);
-  const [video, setVideo] = useState(null);
   const [dragging, setDragging] = useState(false);
   const [pasteFlash, setPasteFlash] = useState(false);
   const postRef      = useRef(null);
   const editorRef    = useRef(null);
   const fileInputRef = useRef(null);
-  const videoInputRef = useRef(null);
-  const videoRef     = useRef(null);
 
   // Initialize editor HTML once — do NOT use dangerouslySetInnerHTML on the editor
   // (that would reset cursor position on every keystroke)
@@ -101,10 +98,9 @@ const PostGenerator = () => {
     document.execCommand('insertText', false, e.clipboardData.getData('text/plain'));
   }, []); // addImage added below via ref-stable pattern — safe since addImage is stable
 
-  // ── Add image (clears video) ───────────────────────────────
+  // ── Add image ─────────────────────────────────────────────
   const addImage = useCallback((file) => {
     if (!file || !file.type.startsWith('image/')) return;
-    setVideo(null);
     setImages(prev => {
       if (prev.length >= 2) return prev;
       const reader = new FileReader();
@@ -115,15 +111,6 @@ const PostGenerator = () => {
   }, []);
 
   const removeImage = (idx) => setImages(prev => prev.filter((_, i) => i !== idx));
-
-  // ── Add video (clears images) ──────────────────────────────
-  const addVideo = useCallback((file) => {
-    if (!file || !file.type.startsWith('video/')) return;
-    setImages([]);
-    const reader = new FileReader();
-    reader.onload = (e) => setVideo(e.target.result);
-    reader.readAsDataURL(file);
-  }, []);
 
   // ── Global paste — images only, skip when editor has focus ─
   useEffect(() => {
@@ -144,103 +131,101 @@ const PostGenerator = () => {
   }, [addImage]);
 
   // ── File input / drag-drop ─────────────────────────────────
-  const handleFileInput  = (e) => addImage(e.target.files[0]);
-  const handleDrop       = (e) => { e.preventDefault(); setDragging(false); addImage(e.dataTransfer.files[0]); };
-  const handleVideoInput = (e) => addVideo(e.target.files[0]);
-  const handleVideoDrop  = (e) => { e.preventDefault(); addVideo(e.dataTransfer.files[0]); };
+  const handleFileInput = (e) => addImage(e.target.files[0]);
+  const handleDrop      = (e) => { e.preventDefault(); setDragging(false); addImage(e.dataTransfer.files[0]); };
 
-  // ── Export (swaps video → frame img for html2canvas) ──────
+  // ── Export: html2canvas ignores object-fit, so swap each .post-img
+  //    with a canvas that manually applies cover before capture ────────
   const captureCanvas = async () => {
     if (!postRef.current) return null;
-
-    let videoImgEl = null, videoWrap = null, originalVideoEl = null;
-    if (video && videoRef.current) {
-      const vid = videoRef.current;
-      const tmp = document.createElement('canvas');
-      tmp.width = vid.videoWidth || vid.clientWidth;
-      tmp.height = vid.videoHeight || vid.clientHeight;
-      tmp.getContext('2d').drawImage(vid, 0, 0, tmp.width, tmp.height);
-      videoWrap = vid.parentElement; originalVideoEl = vid;
-      videoImgEl = document.createElement('img');
-      videoImgEl.src = tmp.toDataURL('image/png');
-      videoImgEl.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-      videoWrap.replaceChild(videoImgEl, vid);
-    }
-
-    // html2canvas ignores object-fit — replace .post-img elements with canvases
-    // that manually apply contain (single) or cover (dual) before capture.
-    // Canvas internal resolution must match html2canvas scale (6×) to avoid blur.
     const H2C_SCALE = 6;
     const imgSwaps = [];
-    const postImgEls = postRef.current.querySelectorAll('.post-img');
-    const isSingle = postImgEls.length === 1;
-    for (const imgEl of postImgEls) {
-      const w = imgEl.offsetWidth;
-      const h = imgEl.offsetHeight;
-      const natW = imgEl.naturalWidth || w;
-      const natH = imgEl.naturalHeight || h;
-      const cw = w * H2C_SCALE, ch = h * H2C_SCALE;
-      const cvs = document.createElement('canvas');
-      cvs.width = cw; cvs.height = ch;
-      cvs.style.cssText = `width:${w}px;height:${h}px;display:block;`;
-      const ctx = cvs.getContext('2d');
-      ctx.fillStyle = '#000';
-      ctx.fillRect(0, 0, cw, ch);
-      if (isSingle) {
-        // contain: scale to fit, center
-        const scale = Math.min(cw / natW, ch / natH);
-        const dw = natW * scale, dh = natH * scale;
-        ctx.drawImage(imgEl, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
-      } else {
-        // cover: scale to fill, center-crop
+    let canvas = null;
+    try {
+      for (const imgEl of postRef.current.querySelectorAll('.post-img')) {
+        const w = imgEl.offsetWidth || imgEl.clientWidth || 400;
+        const h = imgEl.offsetHeight || imgEl.clientHeight || 400;
+        if (!w || !h) continue;
+        const natW = imgEl.naturalWidth || w;
+        const natH = imgEl.naturalHeight || h;
+        const cw = w * H2C_SCALE, ch = h * H2C_SCALE;
+        const cvs = document.createElement('canvas');
+        cvs.width = cw; cvs.height = ch;
+        cvs.style.cssText = `width:${w}px;height:${h}px;display:block;`;
+        const ctx = cvs.getContext('2d');
+        // cover: scale to fill, center-crop (matches CSS object-fit:cover)
         const scale = Math.max(cw / natW, ch / natH);
         const dw = natW * scale, dh = natH * scale;
         ctx.drawImage(imgEl, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
+        if (imgEl.parentElement) {
+          imgEl.parentElement.replaceChild(cvs, imgEl);
+          imgSwaps.push({ cvs, imgEl });
+        }
       }
-      imgEl.parentElement.replaceChild(cvs, imgEl);
-      imgSwaps.push({ cvs, imgEl });
+      canvas = await html2canvas(postRef.current, {
+        scale: 6, backgroundColor: null, useCORS: true, logging: false, allowTaint: true,
+      });
+    } finally {
+      for (const { cvs, imgEl } of imgSwaps)
+        if (cvs.parentElement) cvs.parentElement.replaceChild(imgEl, cvs);
     }
-
-    const canvas = await html2canvas(postRef.current, {
-      scale: 6, backgroundColor: null, useCORS: true, logging: false, allowTaint: true,
-    });
-
-    // Restore original img elements
-    for (const { cvs, imgEl } of imgSwaps)
-      cvs.parentElement.replaceChild(imgEl, cvs);
-
-    if (videoWrap && originalVideoEl && videoImgEl)
-      videoWrap.replaceChild(originalVideoEl, videoImgEl);
-
     return canvas;
+  };
+
+  // Opens the rendered image in a new tab so the user can long-press → Save
+  const openImageTab = (dataUrl) => {
+    const w = window.open('about:blank', '_blank');
+    if (!w) return;
+    w.document.write(
+      '<html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head>' +
+      '<body style="margin:0;background:#111;display:flex;flex-direction:column;align-items:center;">' +
+      '<img src="' + dataUrl + '" style="max-width:100%;display:block;"/>' +
+      '<p style="font-family:sans-serif;color:#aaa;padding:14px;text-align:center;font-size:14px;">' +
+      'Long-press the image → Save to Photos / Downloads</p>' +
+      '</body></html>'
+    );
+    w.document.close();
   };
 
   const handleDownload = async () => {
     const canvas = await captureCanvas();
     if (!canvas) return;
-    const link = document.createElement('a');
-    link.href = canvas.toDataURL('image/png', 1.0);
-    link.download = `vamsi-post-${theme}.png`;
-    link.click();
+    const dataUrl = canvas.toDataURL('image/png', 1.0);
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isIOS) {
+      openImageTab(dataUrl);
+    } else {
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `vamsi-post-${theme}.png`;
+      link.click();
+    }
   };
 
   const handleCopy = async () => {
     const canvas = await captureCanvas();
     if (!canvas) return;
+    const dataUrl = canvas.toDataURL('image/png', 1.0);
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    // iOS: navigator.share fails after async ops (loses user-gesture context);
+    // open in tab so user can long-press save — most reliable iOS approach.
+    if (isIOS) { openImageTab(dataUrl); return; }
+
     canvas.toBlob(async (blob) => {
       try {
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        if (navigator.share && (isMobile || !navigator.clipboard?.write)) {
-          const file = new File([blob], `vamsi-post-${theme}.png`, { type: 'image/png' });
-          if (navigator.canShare?.({ files: [file] })) {
-            await navigator.share({ files: [file], title: 'Vamsi Penmetsa Post' });
-            setCopied(true); setTimeout(() => setCopied(false), 2000); return;
-          }
+        // Android / desktop — try native share first
+        const file = new File([blob], `vamsi-post-${theme}.png`, { type: 'image/png' });
+        if (navigator.share && navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file], title: 'Vamsi Penmetsa Post' });
+          setCopied(true); setTimeout(() => setCopied(false), 2000); return;
         }
+        // Desktop clipboard
         if (navigator.clipboard?.write) {
           await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
           setCopied(true); setTimeout(() => setCopied(false), 2000); return;
         }
+        // Final fallback: download
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url; link.download = `vamsi-post-${theme}.png`;
@@ -248,7 +233,7 @@ const PostGenerator = () => {
         document.body.removeChild(link); URL.revokeObjectURL(url);
       } catch (err) {
         console.error('Copy failed:', err);
-        alert('Downloaded instead (clipboard not supported on this device)');
+        openImageTab(dataUrl);
       }
     }, 'image/png', 1.0);
   };
@@ -327,7 +312,7 @@ const PostGenerator = () => {
                 ))}
               </div>
             )}
-            {canAddMore && !video && (
+            {canAddMore && (
               <div
                 className={`drop-zone ${dragging ? 'dragging' : ''} ${pasteFlash ? 'paste-flash' : ''}`}
                 onClick={() => fileInputRef.current.click()}
@@ -343,30 +328,6 @@ const PostGenerator = () => {
               </div>
             )}
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileInput} style={{ display: 'none' }} />
-          </div>
-
-          {/* Video section */}
-          <div className="image-section">
-            <span className="label">
-              <Film size={16} />
-              Video
-              <span className="label-hint">— MP4 · WebM · MOV (replaces images)</span>
-            </span>
-            {video ? (
-              <div className="image-thumbs">
-                <div className="thumb-wrap">
-                  <video src={video} className="image-preview-thumb" muted />
-                  <button className="remove-image-btn" onClick={() => setVideo(null)} title="Remove"><X size={13} /></button>
-                </div>
-              </div>
-            ) : (
-              <div className="drop-zone" onClick={() => videoInputRef.current.click()} onDragOver={(e) => e.preventDefault()} onDrop={handleVideoDrop}>
-                <Film size={24} className="drop-icon" />
-                <span>Click or drag a video</span>
-                <span className="drop-hint">{images.length > 0 ? 'Will clear existing images' : 'MP4 · WebM · MOV'}</span>
-              </div>
-            )}
-            <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoInput} style={{ display: 'none' }} />
           </div>
 
           {/* Font selector */}
@@ -397,7 +358,7 @@ const PostGenerator = () => {
           <div className="action-buttons">
             <button onClick={handleCopy} className="copy-btn">
               {copied ? <Check size={20} /> : <Copy size={20} />}
-              {copied ? 'Copied!' : /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? 'Share' : 'Copy Image'}
+              {copied ? 'Saved!' : /iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'Save Image' : /Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? 'Share' : 'Copy Image'}
             </button>
             <button onClick={handleDownload} className="download-btn">
               <Download size={20} />
@@ -447,13 +408,6 @@ const PostGenerator = () => {
               {images.map((img, i) => (
                 <img key={i} src={img} alt={`Attached ${i + 1}`} className="post-img" />
               ))}
-            </div>
-          )}
-
-          {/* Video */}
-          {video && (
-            <div className="post-images-grid single">
-              <video ref={videoRef} src={video} className="post-video" autoPlay muted loop playsInline />
             </div>
           )}
 
